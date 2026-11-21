@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "id": "qwen38-flash-next-iq2-xs-reference",
+  "status": "reference-only-not-downloadable-profile",
+  "repository": "https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
+  "pack_label": "IQ2_XS",
+  "revision": null,
+  "files": [],
+  "text_only": true,
+  "routed_top_k": 10,
+  "expert_skip": 0,
+  "mtp": false,
+  "notes": [
+    "Mixed tensor formats; IQ2_XS is not a universal tensor type or openTPU FP4 layout.",
+    "Pin model revision, file SHA256 values and review license before adding a download workflow.",
+    "No weights included or downloaded; this is not an executable model configuration."
+  ]
+}

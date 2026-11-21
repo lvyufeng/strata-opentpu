@@ -1,7 +1,11 @@
 # ADR 0001: Independent integration repository
 
 - Date: 2026-11-21
-- Status: accepted
+- Status: superseded by [ADR 0002](0002-three-repository-integration.md)
+
+This is the historical bootstrap decision, not the current implementation plan.
+The independent integration repository remains, but the decision to avoid
+capability forks and own scheduling/model execution here has been replaced.
 
 ## Context
 

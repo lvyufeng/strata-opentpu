@@ -1,5 +1,7 @@
-# Runtime boundary (planned)
+# Runtime integration boundary (planned)
 
-Own model execution, routing, CPU/FPGA partitions, synchronization, merging and
-tracing. No runtime/API implemented. See [architecture](../docs/architecture.md)
-and [roadmap](../docs/roadmap.md).
+Model execution, routing, expert scheduling, synchronization and MTP changes
+belong in the [Strata fork](https://github.com/lvyufeng/Strata), not a second
+engine here. This directory is reserved for integration contracts and launch
+configuration. No runtime/API is implemented in this repository.
+See [architecture](../docs/architecture.md) and [roadmap](../docs/roadmap.md).

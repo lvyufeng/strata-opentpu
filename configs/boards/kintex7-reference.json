@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "kintex7-reference",
+  "status": "reference-only-not-programmable",
+  "board_label": "Inspur YPCB-00338-1P1",
+  "fpga_part": "xc7k480tffg1156-2",
+  "ddr_banks": 2,
+  "ddr_total_bytes": 4294967296,
+  "pcie_endpoint_capability": {"generation": 2, "lanes": 8},
+  "device_identity": null,
+  "programming_transport": null,
+  "notes": [
+    "Reference target, not a probe result or permission to program a device.",
+    "Discover negotiated link, driver, device identity and DMA throughput on the target host.",
+    "Volatile configuration and persistent flash writes must be separate operations."
+  ]
+}

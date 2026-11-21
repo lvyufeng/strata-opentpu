@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "purpose": "bootstrap-source-lock",
+  "captured_on": "2026-11-21",
+  "compatibility_status": "not-validated-for-inference",
+  "dependencies": {
+    "strata": {
+      "repository": "https://github.com/lvyufeng/Strata",
+      "upstream": "https://github.com/Niko1221/Strata",
+      "revision": "3142b66b96e9c0e775e30f620b11b191a1427c2a",
+      "path": "third_party/Strata",
+      "license": "MIT"
+    },
+    "opentpu": {
+      "repository": "https://github.com/lvyufeng/openTPU",
+      "upstream": "https://github.com/FeSens/openTPU",
+      "revision": "d84db55712aba0d40811d7762cb052f05d55b7e5",
+      "path": "third_party/openTPU",
+      "license": "Apache-2.0"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "bootstrap",
+  "status": "bootstrap-only",
+  "description": "Source setup only; not an inference or hardware compatibility profile.",
+  "dependency_lock": "dependencies.lock.json",
+  "capabilities": {
+    "doctor": true,
+    "bootstrap": true,
+    "build": false,
+    "program": false,
+    "smoke-test": false,
+    "launch": false,
+    "benchmark": false
+  },
+  "board": null,
+  "bitstream": null,
+  "model": null,
+  "validated_combination": false
+}
