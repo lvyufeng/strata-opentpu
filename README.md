@@ -79,6 +79,16 @@ or runtime allocations. Pack names are mixed-precision labels. IQ2_XS is not
 directly consumable by openTPU FP4 kernels. Models are **not included or downloaded**.
 The model and board configuration files are reference-only, not runnable profiles.
 
+## Development management
+
+All three repositories use the [central GitHub Project](https://github.com/users/lvyufeng/projects/11)
+and [integration Issues](https://github.com/lvyufeng/strata-opentpu/issues) as the
+live development-state source of truth. The forks own code/PRs and link back to
+central tasks; merge alone does not close an integration acceptance task.
+See the [development contract](docs/development.md) for claims, dependencies,
+permissions, evidence and Agent handoff. No automatic Agent/hardware execution is
+configured by the tracker.
+
 ## Documentation and experiments
 
 - [Architecture](docs/architecture.md) and [roadmap](docs/roadmap.md)

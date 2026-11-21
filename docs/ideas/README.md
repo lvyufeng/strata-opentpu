@@ -8,6 +8,14 @@ Strata already provides resident hot GPU experts, cold-expert CPU computation,
 adaptive caching, and MTP. A proposal should identify what changes for an FPGA
 backend rather than presenting those existing mechanisms as new inventions.
 
+## Tracking proposals
+
+Record actionable proposals in a [central Issue](https://github.com/lvyufeng/strata-opentpu/issues)
+and add them to the [development Project](https://github.com/users/lvyufeng/projects/11).
+Link that Issue from any versioned design note and link the note back from the
+Issue. The Issue owns live decisions, executor and next steps; this directory is
+not a separate backlog. Follow the [development contract](../development.md).
+
 Useful initial questions:
 
 - Which actual expert quantization format covers enough bytes/calls to justify a

@@ -82,6 +82,33 @@ class BootstrapTests(unittest.TestCase):
         self.assertIn("https://github.com/lvyufeng/Strata", new)
         self.assertIn("https://github.com/lvyufeng/openTPU", new)
 
+    def test_development_tracking_contract(self):
+        contract = (ROOT / "docs/development.md").read_text(encoding="utf-8")
+        agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        project = "https://github.com/users/lvyufeng/projects/11"
+        issues = "https://github.com/lvyufeng/strata-opentpu/issues"
+        for text in (contract, agents, readme):
+            self.assertIn(project, text)
+            self.assertIn(issues, text)
+        for state in ("Backlog", "Ready", "In Progress", "Blocked", "Awaiting approval", "Done"):
+            self.assertIn(state, contract)
+        self.assertIn("blocked_by", contract)
+        self.assertIn("accepted output", contract)
+        self.assertIn("Refs https://github.com/lvyufeng/strata-opentpu/issues/N", contract)
+        self.assertIn("not another live", contract)
+        self.assertIn("At every session end", agents)
+
+    def test_development_templates(self):
+        issue = (ROOT / ".github/ISSUE_TEMPLATE/development-task.md").read_text(encoding="utf-8")
+        pr = (ROOT / ".github/pull_request_template.md").read_text(encoding="utf-8")
+        for heading in ("Dependencies", "Acceptance", "permission", "Evidence"):
+            self.assertIn(heading, issue)
+        self.assertIn("type:task", issue)
+        self.assertIn("projects/11", issue)
+        self.assertIn("Refs https://github.com/lvyufeng/strata-opentpu/issues/N", pr)
+        self.assertIn("central acceptance", pr)
+
     def test_license(self):
         text = (ROOT / "LICENSE").read_text(encoding="utf-8")
         self.assertIn("Apache License", text)

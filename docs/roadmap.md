@@ -6,6 +6,16 @@ execution in the Strata fork and hardware capability work in the openTPU fork.
 The integration CLI remains bootstrap-only; no FPGA inference, usable bitstream
 release, or throughput result is available from this repository yet.
 
+## Execution tracking
+
+Live status and dependencies belong to the [central Project](https://github.com/users/lvyufeng/projects/11)
+and [integration Issues](https://github.com/lvyufeng/strata-opentpu/issues), not to
+a duplicate backlog in either fork. This document describes design stages, not
+a strictly sequential schedule. See the [development contract](development.md).
+CPU/operator/memory/ABI work can proceed in parallel; device profile/smoke testing
+does not require a complete Strata model backend. Ordinary-decode correctness is
+a hard gate for wall performance; MTP-on has an additional state-validation gate.
+
 ## M0: Public scaffold (complete)
 
 Original license, upstream reference metadata, documentation, and hardware-free

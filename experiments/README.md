@@ -9,6 +9,16 @@ This directory will hold reproducible experiment definitions and reviewed,
 sanitized summaries, not private raw logs, model weights, or bitstreams. It is
 separate from the software/RTL implementation in the two capability forks.
 
+## Central experiment tracking
+
+Create or reuse one [central Issue](https://github.com/lvyufeng/strata-opentpu/issues)
+with `type:experiment`, add it to the [development Project](https://github.com/users/lvyufeng/projects/11)
+and link it in the experiment definition/report. Record the claim, permissions,
+evidence and session handoff in that Issue; keep reproducible sanitized reports
+here and add reciprocal links. A measured Reject/no benefit is a valid experiment
+conclusion, not completion of the umbrella performance goal. Follow the
+[development contract](../docs/development.md); avoid a separate local backlog.
+
 ## Required experiment record
 
 - Question/hypothesis and connection to an [idea](../docs/ideas/README.md).

@@ -17,6 +17,28 @@ Strata already has GPU hot-expert residency, CPU cold-expert computation,
 adaptive caching and MTP. Reuse those mechanisms; do not present them as ours.
 Do not duplicate full upstream implementations in this repository.
 
+## Central development tracking
+
+Use the [integration GitHub Project](https://github.com/users/lvyufeng/projects/11)
+and [central Issues](https://github.com/lvyufeng/strata-opentpu/issues) for all
+three-repository development. Read [the execution contract](docs/development.md)
+before starting work. Do not maintain a duplicate task backlog in either fork.
+
+Before claiming: read the Issue, parent, dependencies, latest comments and Project
+fields; comment actual executor, scope, exact inputs, resource/permission limits
+and evidence plan, then set In Progress. Ready is not hardware authorization.
+Record concrete blockers or operation-specific Awaiting approval conditions.
+At every session end, write back commits/PRs, tests, sanitized evidence, conclusion,
+remaining gaps and next steps. Local todos/team boards are not authoritative state.
+
+Cross-fork PRs reference the complete central Issue URL with `Refs`; do not
+ambiguously use `#N` or auto-close integration tasks at fork PR merge. Add reciprocal
+links to the central Issue. Verify native parent/dependency links and Project
+membership/fields after edits. Close only after the stated acceptance is verified,
+then synchronize Done. Experiments may conclude Reject; the >10 tokens/s umbrella
+closes only when its actual correctness and wall-throughput goals are achieved.
+Do not assume Project edits start Agents, reserve hardware or grant permissions.
+
 ## Setup procedure
 
 1. Run `python3 scripts/sop.py doctor`. Treat available PCI enumeration as
