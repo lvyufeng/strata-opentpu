@@ -89,6 +89,24 @@ See the [development contract](docs/development.md) for claims, dependencies,
 permissions, evidence and Agent handoff. No automatic Agent/hardware execution is
 configured by the tracker.
 
+## Source audit and proposed ABI
+
+The [pinned execution/format audit](docs/audits/strata-execution.md) records
+source-backed boundaries and explicitly missing actual-model metadata. The
+[device ABI proposal](docs/design/device-abi.md) has a hardware-free
+[conformance model](runtime/abi_contract.py); it is not an implemented device
+transport or inference backend. These are development artifacts, not new enabled
+bootstrap capabilities.
+
+```sh
+python3 scripts/check_source_anchors.py                 # metadata only, CI-safe
+python3 scripts/check_source_anchors.py --check-sources # existing locked sources only
+```
+
+The second command never fetches sources. It checks citation ranges/excerpts
+against clean pinned local checkouts, not the semantic truth of the audit or
+model correctness. See the [script reference](scripts/README.md).
+
 ## Documentation and experiments
 
 - [Architecture](docs/architecture.md) and [roadmap](docs/roadmap.md)

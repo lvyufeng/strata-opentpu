@@ -65,6 +65,25 @@ nonzero without side effects, including if a profile tries to enable them.
 commands from profiles are never executed. An optional `--profile` must use the
 supported bootstrap schema; changing capability booleans cannot enable features.
 
+## Static audit citation checks
+
+The [audit manifest](../data/strata-execution-audit.json) is a machine-readable
+source index for the [execution audit](../docs/audits/strata-execution.md).
+The separate [citation validator](check_source_anchors.py) supports:
+
+```sh
+python3 scripts/check_source_anchors.py
+python3 scripts/check_source_anchors.py --check-sources
+```
+
+Default mode checks source URLs/revisions against the lock and validates entry
+IDs, citation paths and line ranges structurally. It needs no dependency sources
+and never fetches anything. Opt-in source checking requires existing clean,
+exact-HEAD local source checkouts and additionally checks file bounds and any
+provided excerpt. It does not run source code, prove a citation's interpretation,
+inspect model tensors or certify inference. Success prints JSON; validation
+failure exits 1. This is independent of the bootstrap CLI's exit-code contract.
+
 ## Hardware/network-free tests
 
 ```bash

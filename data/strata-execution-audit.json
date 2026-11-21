@@ -1,0 +1,923 @@
+{
+  "schema_version": 1,
+  "status": "unconfirmed static analysis",
+  "scope": "Pinned Flash-Next whole text execution path; no model/device execution",
+  "sources": {
+    "strata": {
+      "revision": "3142b66b96e9c0e775e30f620b11b191a1427c2a",
+      "repository": "https://github.com/lvyufeng/Strata"
+    }
+  },
+  "entries": [
+    {
+      "id": "geometry",
+      "operator": "Compiled Flash-Next geometry",
+      "device": "host validation / GPU kernel contract",
+      "shape": "48 layers: 36 GDN, 12 QSA; H=2560; vocab=248320; experts=512, top-k=10, FF=640; hyperconnections=4, rank=320",
+      "layout": "QSA layers 3,7,...47; configurable build geometry is not proof of an inspected model",
+      "lifetime": "Model/build lifetime",
+      "synchronization": "Validate actual GGUF geometry against chosen compiled geometry before allocation",
+      "state": "Dimensions are defaults, not observed model metadata",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/geometry.hpp",
+          "start_line": 20,
+          "end_line": 89
+        }
+      ]
+    },
+    {
+      "id": "embedding",
+      "operator": "Token embedding gather",
+      "device": "GPU; native embedding may read mapped host memory",
+      "shape": "token id -> H=2560",
+      "layout": "Native GGUF gather or canonical S2/S4/S8 planes; canonical IQ4_NL explicitly rejected; native placement configurable",
+      "lifetime": "Weights persistent; output per token/window",
+      "synchronization": "Gather on ordered stream; retain mapped host storage until GPU reads complete",
+      "state": "Read-only weights; writes token activation",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1336,
+          "end_line": 1388
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/native_head.hpp",
+          "start_line": 50,
+          "end_line": 68
+        }
+      ]
+    },
+    {
+      "id": "hyperconnection",
+      "operator": "RMS normalization, gated residual read/write and injection",
+      "device": "GPU",
+      "shape": "R=[4,2560], mixed=[2560], low rank=320",
+      "layout": "Float residual; F32 norm; BF16-in-F32 down/up/inject forms checked; fused path may defer prior FFN write",
+      "lifetime": "R persistent; mixed and inject survive pre -> post; scratch shared in ordered execution",
+      "synchronization": "Pre/attention/FFN/post must remain ordered; do not reuse mixed/inject while CPU experts are in flight",
+      "state": "Updates multi-stream R; fused deferred write is part of state frontier",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1534,
+          "end_line": 1587
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1622,
+          "end_line": 1640
+        }
+      ]
+    },
+    {
+      "id": "gdn-projection",
+      "operator": "GDN normalization/projections and activation quantization",
+      "device": "GPU",
+      "shape": "H2560 -> QKV10240; q2048,k2048,v6144; alpha/beta48; output6144 ->2560",
+      "layout": "Per-tensor native/canonical activation choice; Q8_K and Q8_0 canonical scratch can both be needed; BF16 native path has distinct rounding",
+      "lifetime": "Dense weights persistent; projection scratch per layer call/window",
+      "synchronization": "Ordered projection -> convolution -> recurrence -> output; retain recorded verifier inputs for accepted-prefix replay",
+      "state": "Writes transient q/k/v, alpha/beta, z",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 251,
+          "end_line": 315
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 320,
+          "end_line": 345
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 371,
+          "end_line": 383
+        }
+      ]
+    },
+    {
+      "id": "gdn-convolution",
+      "operator": "Causal convolution and SiLU",
+      "device": "GPU",
+      "shape": "10240 channels, conv width4; split q/k/v only after convolution",
+      "layout": "Persistent C*(d_conv-1) history; fused native preconditions include conv4 and S128; legacy D2D/SiLU fallback",
+      "lifetime": "One convolution history per GDN layer; output scratch reused only after consumers",
+      "synchronization": "Convolution before split and q/k L2 normalization; verifier must advance only accepted history",
+      "state": "Mutates convolution history on token path; speculative window commit has separate rules",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 275,
+          "end_line": 311
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/layer.hpp",
+          "start_line": 60,
+          "end_line": 95
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/verify.hpp",
+          "start_line": 13,
+          "end_line": 18
+        }
+      ]
+    },
+    {
+      "id": "gdn-recurrence",
+      "operator": "Gated DeltaNet recurrence",
+      "device": "GPU",
+      "shape": "S128; 16 key heads,48 value heads; state=128*48*128 float elements/layer",
+      "layout": "Transposed internal state (S,h_v,S), not reference (S,S,h_v); q/k L2 normalization, not v",
+      "lifetime": "36 distinct persistent recurrent states; common scratch does not mean shared state",
+      "synchronization": "Single-token recurrence ordered; verifier defers recurrent mutation except eligible self-commit path",
+      "state": "Updates GDN recurrent state; accepted-prefix replay is required",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/layer.hpp",
+          "start_line": 8,
+          "end_line": 32
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/layer.hpp",
+          "start_line": 60,
+          "end_line": 95
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 296,
+          "end_line": 352
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/session.cpp",
+          "start_line": 808,
+          "end_line": 815
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/verify.hpp",
+          "start_line": 13,
+          "end_line": 18
+        }
+      ]
+    },
+    {
+      "id": "gdn-output-gate",
+      "operator": "GDN output RMS norm, norm weight, sigmoid gate and output projection",
+      "device": "GPU",
+      "shape": "o/z/y6144 -> H2560",
+      "layout": "rms_norm(o)*ssm_norm*sigmoid(z); this output gate is NOT SiLU",
+      "lifetime": "Transient gated output and quantization scratch",
+      "synchronization": "Recurrence output must be ready before gate and projection",
+      "state": "No separate persistent state beyond preceding GDN state",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 360,
+          "end_line": 383
+        }
+      ]
+    },
+    {
+      "id": "qsa-projection",
+      "operator": "QSA query/gate, KV and indexer projections, norm and RoPE",
+      "device": "GPU",
+      "shape": "24 query heads x256;2 KV heads x256; query+gate=24*2*256; indexer4x128; RoPE64",
+      "layout": "Query/gate half-split with 2D copy; Q/K normalization and RoPE; weight type chosen per tensor",
+      "lifetime": "Projection scratch per call; RoPE tables persistent/possibly borrowed",
+      "synchronization": "Projection and rotation before KV/index append and attention",
+      "state": "Advances KV/index state via following operators, not free-standing matmul",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1240,
+          "end_line": 1263
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/layer.hpp",
+          "start_line": 203,
+          "end_line": 211
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/layer.hpp",
+          "start_line": 246,
+          "end_line": 252
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/geometry.hpp",
+          "start_line": 38,
+          "end_line": 46
+        }
+      ]
+    },
+    {
+      "id": "kv-storage",
+      "operator": "QSA KV append, streaming and page resolution",
+      "device": "GPU + optional authoritative host pools",
+      "shape": "[page][kv_head][page_size][head_dim];2 KV heads x256",
+      "layout": "FP16; INT8 + FP16 scale/64; rotated Q4_0 144 B/cell/head; hybrid K8V4 816 B/cell; hybrid mode0 only, MTP ring remains INT8",
+      "lifetime": "Persistent per QSA layer/sequence; pinned staging and page mappings outlive asynchronous reads",
+      "synchronization": "Resolve selected blocks before attention; streamed mode host owns authoritative bytes; elastic growth requires no concurrent device work",
+      "state": "Mode0 all VRAM; mode1 host+VRAM slots; mode2 block%n_slots ring+host resume; rejected speculative cells overwritten before reuse",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/layer.hpp",
+          "start_line": 203,
+          "end_line": 249
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/layer.hpp",
+          "start_line": 263,
+          "end_line": 286
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/layer.hpp",
+          "start_line": 288,
+          "end_line": 299
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1275,
+          "end_line": 1305
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/verify.hpp",
+          "start_line": 13,
+          "end_line": 18
+        }
+      ]
+    },
+    {
+      "id": "indexer",
+      "operator": "Indexer key append/pooling, scoring and sparse top-k selection",
+      "device": "GPU",
+      "shape": "query4x128; one pooled key/4 cells; budget2048 cells; tail[3,128]",
+      "layout": "Persistent float tail/pooled rows, block position and constant dead key; capacity-aware graph grids; native and fallback append/selection",
+      "lifetime": "Tail, pooled index and block cursor persist across tokens",
+      "synchronization": "Append -> score/top-k -> resolve -> gather/attention; commit restores tail then re-appends accepted keys",
+      "state": "Speculative appends are not committed history; restore rejected-tail contamination",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/layer.hpp",
+          "start_line": 244,
+          "end_line": 249
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1240,
+          "end_line": 1277
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/verify.hpp",
+          "start_line": 13,
+          "end_line": 21
+        }
+      ]
+    },
+    {
+      "id": "qsa-attention",
+      "operator": "Sparse attention, optional rotation, sigmoid gate and output projection",
+      "device": "GPU",
+      "shape": "24x256 attention output=6144 ->2560",
+      "layout": "Fast pool attention or gathered FP16/INT8/Q4/hybrid paths; optional FWHT and inverse; short native adapter ctx<=256; native F32 versus canonical FP64 sigmoid gate",
+      "lifetime": "Attention workspace per call/window; KV persistent",
+      "synchronization": "Selected block resolution before read; inverse rotation before gated output projection",
+      "state": "Reads visible KV prefix; writes transient attention/output",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1275,
+          "end_line": 1321
+        }
+      ]
+    },
+    {
+      "id": "router",
+      "operator": "MoE router, softmax, stable top-k and renormalization",
+      "device": "GPU -> mapped pinned host publication",
+      "shape": "2560 ->512 logits; top10 ids and weights",
+      "layout": "BF16 router; softmax over all experts, descending stable ties by index; native specialization512/top10",
+      "lifetime": "Weights persistent; activation/ids/weights in mapped doorbell until host pool consumes",
+      "synchronization": "GPU publishes x/ids/weights then rings sequence last on ordered stream; host load fence precedes reads",
+      "state": "Full routing required: skip=0, all top10; thresholds/skip paths are not acceptance defaults",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 405,
+          "end_line": 444
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1326,
+          "end_line": 1334
+        }
+      ]
+    },
+    {
+      "id": "shared-expert",
+      "operator": "Shared expert gate/up, SiLU multiplication, down and scalar sigmoid gate",
+      "device": "GPU",
+      "shape": "2560 ->640 ->2560, plus scalar gate",
+      "layout": "Each gate/up/down tensor selects its own form/planes and BF16/Q8_K/Q8_0 activation; scalar gate BF16 form required",
+      "lifetime": "Weights persistent; one workspace reused in stream order",
+      "synchronization": "Can run after doorbell publication while CPU cold experts execute; must finish before final combine",
+      "state": "No independent recurrent state",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 468,
+          "end_line": 507
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1584,
+          "end_line": 1587
+        }
+      ]
+    },
+    {
+      "id": "cpu-experts",
+      "operator": "CPU cold routed expert gate/up, SiLU product and down",
+      "device": "CPU host-RAM kernels / ggml fallback",
+      "shape": "Each selected expert:2560 ->640 ->2560; multi-token groups reuse weights",
+      "layout": "Native GGUF types retain metadata; IQ AVX2 and AVX512 are distinct runtime tiers; activation quantizer follows native format; not all kernels share rounding",
+      "lifetime": "Host expert blobs persistent or staged; stage buffers claimed through read joins and all compute batches",
+      "synchronization": "Pool partitions rows, not partial row sums; cold-read overlap must join before releasing buffers",
+      "state": "Only routed cold experts; this is NOT a complete CPU-only decode engine",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cpu/native_expert.cpp",
+          "start_line": 559,
+          "end_line": 617
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cpu/native_expert.cpp",
+          "start_line": 648,
+          "end_line": 707
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/expert_source.cpp",
+          "start_line": 5564,
+          "end_line": 5629
+        }
+      ]
+    },
+    {
+      "id": "resident-experts-combine",
+      "operator": "Hot resident expert execution and weighted MoE/shared reduction",
+      "device": "GPU + CPU result transport",
+      "shape": "top10 outputs ->2560; GPU hits and CPU misses",
+      "layout": "Residency lookup selects hit slots; GPU can zero hit rows while mapped CPU outputs carry misses; weighted combination remains GPU-owned",
+      "lifetime": "Cache slots persistent; miss output and staging scratch survive until GPU consumer is done",
+      "synchronization": "Launch hits before CPU pool; wait/publish miss completion before combine; shared expert can overlap but must join",
+      "state": "Numerical order and exact mode depend on path; do not replace with unvalidated host summation",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/src/core/session.cpp",
+          "start_line": 726,
+          "end_line": 797
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/expert_source.cpp",
+          "start_line": 5564,
+          "end_line": 5597
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1622,
+          "end_line": 1640
+        }
+      ]
+    },
+    {
+      "id": "expert-cache",
+      "operator": "Profile hot-tier fill and adaptive expert residency",
+      "device": "GPU cache; host expert source/control",
+      "shape": "Slots indexed by layer/expert; native blob sizes may differ",
+      "layout": "Residency/table bookkeeping is not expert compute; device slots contain exact expert bytes; per-layer admission option does not imply eviction",
+      "lifetime": "Persistent across tokens; captured pointers must remain stable",
+      "synchronization": "Async fill caller-orders copy and reader; profile startup blocking/queued fills need explicit synchronization; verify_slot compares actual bytes",
+      "state": "Reuse Strata profile/residency/adaptive machinery; FPGA cache lifecycle must preserve publication and ownership",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/expert_cache.hpp",
+          "start_line": 19,
+          "end_line": 55
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/expert_cache.hpp",
+          "start_line": 180,
+          "end_line": 217
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/verify.hpp",
+          "start_line": 20,
+          "end_line": 21
+        }
+      ]
+    },
+    {
+      "id": "ple",
+      "operator": "PLE n-gram hash/lookup, row transfer and history update",
+      "device": "Host/SSD-or-OS-cache table + GPU consumption",
+      "shape": "Layer1 injection; token/history hash selects embedding rows; history channels use row+NG_HIST*channel",
+      "layout": "Host lookup outside capture; pinned row collected then asynchronous H2D; strided history layout",
+      "lifetime": "Table persistent; row buffer cannot be recycled before transfer completes; history per session",
+      "synchronization": "Issue previous lookup must be collected; layer1 PLE before gated residual; caller advances history exactly once/token",
+      "state": "Token history and GPU history are commit/rollback state, not just lookup scratch",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1473,
+          "end_line": 1528
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1593,
+          "end_line": 1619
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/verify.hpp",
+          "start_line": 13,
+          "end_line": 18
+        }
+      ]
+    },
+    {
+      "id": "head",
+      "operator": "Final gated-residual mix, norm and vocabulary projection",
+      "device": "GPU",
+      "shape": "R[4,2560] ->2560 ->vocab248320",
+      "layout": "F32 output_hc_norm; BF16-in-F32 down/up; GR read ->Q8_K ->quantized head GEMV; optional native head",
+      "lifetime": "Head weights persistent; logits per token/window row; shared scratch ordered",
+      "synchronization": "Finish last FFN residual materialization before head; logits ready before sampler",
+      "state": "Reads final residual; writes logits",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1391,
+          "end_line": 1443
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1622,
+          "end_line": 1640
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/native_head.hpp",
+          "start_line": 1,
+          "end_line": 49
+        }
+      ]
+    },
+    {
+      "id": "sampling",
+      "operator": "Penalties, top-k/top-p/min-p, temperature, greedy or stochastic pick",
+      "device": "GPU kernel, host-callable launch",
+      "shape": "logits[T,vocab] ->token_ids[T]; histories[T,history_len]",
+      "layout": "Device pointers for logits/out/history; filter order specified; Philox seed/counter per row; greedy<=0 temperature",
+      "lifetime": "History/counter persistent across requests as configured; per-window history rows differ",
+      "synchronization": "Host must await device completion before consuming ids; speculative rows require their own histories",
+      "state": "Sampler draw counter/seed and history must be part of reproducibility/checkpoint inventory",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/kernels/sampler.hpp",
+          "start_line": 1,
+          "end_line": 45
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/kernels/sampler.hpp",
+          "start_line": 106,
+          "end_line": 110
+        }
+      ]
+    },
+    {
+      "id": "token-execution",
+      "operator": "Single-token graph, CPU doorbell and layer barriers",
+      "device": "GPU graph + CPU orchestration",
+      "shape": "48 layer sequence handshakes per token",
+      "layout": "Mapped x/ids/weights, sequence and flag; shared GPU scratch with per-layer persistent state",
+      "lifetime": "Graph captures pointers; per-token buffers retained until stream completion",
+      "synchronization": "Graph launch; poll sequence + stream query; load fence; CPU pool; seq_cst/store fence; publish flag; final stream sync. Timeout reports failure, not proven quiescence",
+      "state": "20s layer wait timeout is not a safe FPGA cancellation/rollback protocol",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/src/core/session.cpp",
+          "start_line": 929,
+          "end_line": 983
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 1326,
+          "end_line": 1334
+        }
+      ]
+    },
+    {
+      "id": "prefill",
+      "operator": "Chunked prompt through all operators, grouped experts and state handoff",
+      "device": "GPU tensor-core GEMMs + host/pinned copy stream; optional CPU share",
+      "shape": "Chunk[pos0,pos0+n) through48 layers; recurrences walk chunk",
+      "layout": "Requires native GGUF blocks; quantized projections dequantized to FP16, BF16 as-is; grouped resident experts or host->pinned-ring stream",
+      "lifetime": "Borrowed expert rings and streams remain live to completion; persistent state handed to decode",
+      "synchronization": "Cross-stream copy/compute dependencies; all streams idle before borrowed ring returned; native-only prerequisite",
+      "state": "Leaves GDN/conv, KV/index and PLE at prompt frontier; draft prefill precision can change drafts, not authorize target-logit drift",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/prefill/prefill.hpp",
+          "start_line": 1,
+          "end_line": 10
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/prefill/prefill.hpp",
+          "start_line": 32,
+          "end_line": 44
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/prefill/prefill.hpp",
+          "start_line": 60,
+          "end_line": 79
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/prefill/prefill.hpp",
+          "start_line": 175,
+          "end_line": 177
+        }
+      ]
+    },
+    {
+      "id": "mtp",
+      "operator": "MTP embedding/hidden projections, own QSA/MoE/head and draft catch-up",
+      "device": "GPU; currently all draft experts VRAM",
+      "shape": "Residual_i +token_i+1 predicts token_i+2; own512/top10/shared expert",
+      "layout": "Large draft projections Q8_0; dense attention, no target indexer mutation; optional draft Q4; own KV/ring with host resume",
+      "lifetime": "Separate draft KV and residual; may borrow main embedding/head/windowR; lent expert snapshot preserves captured addresses",
+      "synchronization": "Reserve before inflight; sync=false caller orders stream; expert lending refuses decode while lent; restore/catch-up accepted prefix",
+      "state": "Approximate drafts are proposals only; verifier chooses emitted tokens; rejected draft KV must not become target state",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/mtp.hpp",
+          "start_line": 1,
+          "end_line": 19
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/mtp.hpp",
+          "start_line": 46,
+          "end_line": 49
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/mtp.hpp",
+          "start_line": 64,
+          "end_line": 64
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/mtp.hpp",
+          "start_line": 88,
+          "end_line": 144
+        }
+      ]
+    },
+    {
+      "id": "verify-window",
+      "operator": "Batched target verification through every trunk operator",
+      "device": "GPU graph + grouped CPU cold experts",
+      "shape": "T consecutive rows through48 layers; last accepted token plusT-1 drafts",
+      "layout": "Requires native GPU projections, fused GR/GDN, fast attention/selection, native indexer, profile-filled VRAM tier and device residency table",
+      "lifetime": "Window inputs/replay buffers and snapshots survive until prefix commit completes",
+      "synchronization": "Per-token arithmetic equivalence is implementation intent requiring tests, not a proven result from citations",
+      "state": "Speculative KV/index appends; deferred GDN/conv; snapshots include index tail and PLE; eligible single-token self-commit exception",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/verify.hpp",
+          "start_line": 3,
+          "end_line": 21
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/verify.cpp",
+          "start_line": 4143,
+          "end_line": 4153
+        }
+      ]
+    },
+    {
+      "id": "prefix-commit",
+      "operator": "Accepted-prefix replay/restore and asynchronous commit completion",
+      "device": "GPU replay + host PLE advancement",
+      "shape": "1 <=n_keep<=last_t; reject suffix",
+      "layout": "Replays accepted GDN/conv; restores/re-appends index tail; rejected KV overwritten before reuse",
+      "lifetime": "Snapshot/replay/commit parameter buffers retained until completion; no early buffer reuse",
+      "synchronization": "Same-stream next window is ordered; other readers call wait_commit/event synchronization; synchronous path stream-syncs",
+      "state": "Visibility of candidate/result is not commit. Existing internal API is not opaque versioned FPGA transaction ABI",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/verify.hpp",
+          "start_line": 13,
+          "end_line": 18
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/verify.cpp",
+          "start_line": 4139,
+          "end_line": 4220
+        }
+      ]
+    },
+    {
+      "id": "cpu-isa",
+      "operator": "CPU expert build and runtime ISA selection",
+      "device": "x86 CPU; non-x86 portable fallback differs",
+      "shape": "AVX2/FMA/F16C expert objects alongside separate AVX512 and optional AVX1 units",
+      "layout": "Per-source compiler flags; CPUID FMA/OSXSAVE/AVX/F16C, XCR0 XMM/YMM and AVX2 gates; optional AVX-VNNI function targets do not raise AVX2 floor",
+      "lifetime": "Build-selected ggml baseline affects fallback arithmetic; runtime force flags cannot make unsafe global compiler flags safe",
+      "synchronization": "Gate before dispatch; AVX512 VNNI IQ path separate; AVX2 host does not need AVX512 merely because objects exist",
+      "state": "Dual E5-2696v4 is an AVX2/FMA reference target, not a measured build or throughput result; CPU test targets do not establish CPU-only decode",
+      "evidence_classification": "static-source",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/cmake/backends/cpu.cmake",
+          "start_line": 193,
+          "end_line": 235
+        },
+        {
+          "repository": "strata",
+          "path": "engine/cmake/backends/cpu.cmake",
+          "start_line": 259,
+          "end_line": 328
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cpu/expert_layout.cpp",
+          "start_line": 188,
+          "end_line": 239
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cpu/native_expert.cpp",
+          "start_line": 567,
+          "end_line": 594
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cpu/portable.cpp",
+          "start_line": 24,
+          "end_line": 39
+        }
+      ]
+    }
+  ],
+  "format_matrix": [
+    {
+      "format": "IQ2_XS",
+      "ggml_type": 17,
+      "block_elements": 256,
+      "block_bytes": 74,
+      "effective_bits_per_weight": 2.3125,
+      "encoding": "FP16 d + uint16 grid/sign words + packed 4-bit scales; nonlinear integer codebook, not FP4",
+      "cpu": "Native AVX2 IQ256 support, runtime AVX2/FMA/F16C gates and group-size/arithmetic gates; AVX512 tier optional; ggml singleton/fallback depends on build.",
+      "gpu": "native_mmvq supported via iq_mmvq; grouped/prefill dispatch still requires compatible pack/layout and path validation.",
+      "fpga": "No verified IQ decoder/MAC/runtime path at this pin pair; LUT/sign/scale semantics and rounding need a dedicated implementation.",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/quant/strata-quant-common.h",
+          "start_line": 379,
+          "end_line": 385
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cpu/iq_avx2.cpp",
+          "start_line": 1,
+          "end_line": 40
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cpu/native_expert.cpp",
+          "start_line": 567,
+          "end_line": 594
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cuda/native_mmvq.cu",
+          "start_line": 3528,
+          "end_line": 3592
+        }
+      ]
+    },
+    {
+      "format": "Q2_0",
+      "ggml_type": 42,
+      "block_elements": 64,
+      "block_bytes": 18,
+      "effective_bits_per_weight": 2.25,
+      "encoding": "FP16 d +16 packed 2-bit code bytes, fixed integer offset; native GGUF block is not canonical S2 blob",
+      "cpu": "Native q2_native_kernels(type42) accepts runtime AVX2 or AVX1 tier; AVX2 object uses FMA/F16C; bitplane opt-in changes last bits; portable canonical custom Q2 blob refused.",
+      "gpu": "native_q2_0_mmvq supported,64 elements/18B. Native and canonical representations cannot be interchanged by name.",
+      "fpga": "No verified implementation; specify code ordering, signed/offset arithmetic, scale rounding and activation contract.",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/kernels/cpu/expert_layout.hpp",
+          "start_line": 84,
+          "end_line": 102
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cpu/q2_avx2.cpp",
+          "start_line": 1,
+          "end_line": 105
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cpu/portable.cpp",
+          "start_line": 24,
+          "end_line": 39
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cuda/native_mmvq.cu",
+          "start_line": 3535,
+          "end_line": 3589
+        }
+      ]
+    },
+    {
+      "format": "IQ3_S",
+      "ggml_type": 21,
+      "block_elements": 256,
+      "block_bytes": 110,
+      "effective_bits_per_weight": 3.4375,
+      "encoding": "FP16 d +qs/qh grid bits +signs +4-bit scales; not Q3_K despite equal110B/256 storage",
+      "cpu": "AVX2 IQ256 and optional AVX512 IQ512 paths with dispatch, multi-token thresholds and singleton parity/arithmetic restrictions; ggml fallback.",
+      "gpu": "native_mmvq supported via iq_mmvq; native support is not proof every tensor/operator uses that path.",
+      "fpga": "No verified nonlinear grid/sign decoder; IQ3_S exact semantics required independently of IQ2_XS.",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/quant/strata-quant-common.h",
+          "start_line": 403,
+          "end_line": 412
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cpu/iq_avx2.cpp",
+          "start_line": 1,
+          "end_line": 40
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cpu/native_expert.cpp",
+          "start_line": 648,
+          "end_line": 707
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cuda/native_mmvq.cu",
+          "start_line": 3528,
+          "end_line": 3592
+        }
+      ]
+    },
+    {
+      "format": "Mixed GGUF and engine tensor forms",
+      "ggml_type": null,
+      "block_elements": null,
+      "block_bytes": null,
+      "encoding": "Pack labels are primary quantizers, not per-tensor inventories. Preserve tensor type, dimensions, row bytes, planes, offsets, codebook, scales and any global tail scales.",
+      "cpu": "Native per-layer/per-role metadata selects activation/dot kernels; fallback requires valid linked/own traits and correct build baseline.",
+      "gpu": "BF16/F32 norms/router/hyperconnections plus mixed native quantized projections/shared/head/experts. Native MMVQ list is operator-specific, not universal embedding/prefill/cache support.",
+      "fpga": "FP4/NVFP4/MXFP4 primitives are not IQ2_XS/IQ3_S/Q2_0 implementations. Do not reinterpret or silently requantize.",
+      "anchors": [
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/core/weights.hpp",
+          "start_line": 1,
+          "end_line": 69
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/layer.cpp",
+          "start_line": 468,
+          "end_line": 507
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/core/native_dense.cpp",
+          "start_line": 134,
+          "end_line": 209
+        },
+        {
+          "repository": "strata",
+          "path": "engine/src/kernels/cpu/native_expert.cpp",
+          "start_line": 710,
+          "end_line": 729
+        },
+        {
+          "repository": "strata",
+          "path": "engine/include/strata/quant/types.hpp",
+          "start_line": 9,
+          "end_line": 39
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Unconfirmed static analysis only. Source bounds/SHA validation is not semantic correctness, a build, model execution or a measured performance result.",
+    "No actual model GGUF/header/tensor inventory was supplied or inspected. IQ2_XS primary, Q2_0 speed and IQ3_S quality are intended pack categories only; no exact tensor type map, shard hashes, artifact lengths, alignment, auxiliary forms or model memory budget is established.",
+    "No CPU+FPGA complete decode backend is established by these sources. Native CPU expert kernels and CPU-only unit-test targets do not implement embedding, GR, GDN/QSA, PLE, router/shared/head/sampler, prefill, MTP or verifier scheduling on a CPU-only engine.",
+    "Non-expert GPU replacement is a required central follow-up: placement/implementation/parity for every operator in entries, including stateful recurrence, KV/index storage, normalization/activation, host lookup, head/sampling and orchestration. Replacing only the expert accelerator leaves the GPU dependency intact.",
+    "Verifier explicitly depends on native GPU projections, fused GR/GDN, fast attention/selection, native indexer and profile-filled VRAM resident expert tier/device residency table. CPU+FPGA must provide equivalent contracts or retain GPU; MTP also assumes VRAM experts and own GPU KV.",
+    "No openTPU source claim or hardware compatibility is certified here. Strata pin is audited; openTPU pin is integration context only. No FPGA IQ support, DMA coherence, usable endpoint, programming, bitstream, ABI compatibility or throughput is verified.",
+    "An opaque versioned transaction ABI, candidate-versus-commit separation, quiescent rollback, timeout quarantine/reset epoch and safe CPU fallback are requirements for future adapters, not demonstrated Strata public APIs.",
+    "Broader optional model families, vision/audio, remote multi-GPU implementations and every environment-variable variant were not exhaustively audited. Scope is default compiled Flash-Next text prefill/decode/MTP target path and its source-visible alternatives."
+  ]
+}
