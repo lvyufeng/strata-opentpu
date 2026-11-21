@@ -26,5 +26,7 @@ jobs:
         run: python scripts/resource_budget.py
       - name: Check partial CPU evidence template (not a CPU experiment)
         run: python scripts/check_cpu_evidence.py
+      - name: Validate recorded packed-oracle acceptance receipt (no source execution)
+        run: python scripts/check_packed_oracle.py --strict-receipt
       - name: Show source plan without fetching dependencies
         run: python scripts/sop.py bootstrap

@@ -132,6 +132,46 @@ or access target hosts/devices. Default inputs resolve relative to the repositor
 not the caller's working directory. Passing them is not operation authorization
 and does not implement the planned bootstrap commands.
 
+## Packed-oracle receipt and opt-in source verification
+
+The [packed-oracle checker](check_packed_oracle.py) reads the integration
+[receipt](../configs/contracts/opentpu-packed-oracle.json), not a copy of the math:
+
+```sh
+python3 scripts/check_packed_oracle.py
+python3 scripts/check_packed_oracle.py --strict-receipt
+python3 scripts/check_packed_oracle.py --fixture /path/to/supplied-fixture.json
+python3 scripts/check_packed_oracle.py --strict-receipt --oracle-root /path/to/reviewed-opentpu
+```
+
+Default and strict-receipt modes check recorded schema/source/acceptance
+consistency only. The fixture mode also checks provenance, counts, lengths and
+pinned digests without doing decode/dot. None certifies review/CI assertions as
+true. The integration CI uses strict-receipt only and never obtains fork sources.
+
+The **explicit** oracle-root opt-in requires a complete receipt and an existing
+nonsymlink independent checkout at the exact reviewed commit, clean including
+ignored/untracked files, correct fork origin/base ancestry, full MIT notices and
+fixture digests. It compares the index and every ordinary tracked file's actual
+Git blob hash/mode to the recorded commit tree, rejects hidden/sparse/unmerged
+index flags and symlinks/gitlinks, then runs only the fixed stdlib verification
+module with the current interpreter (`-B -E -S`). It repeats tree/index/byte/extra
+file checks and checks HEAD after execution; Git status/filters are not relied on
+for content integrity. Effective partial-clone/promisor configuration is rejected
+before tree-object lookup, and Git lazy fetching is disabled. This is
+trusted-source execution, **not** an OS/hardware/resource sandbox;
+environment cleanup and timeouts cannot confine arbitrary malicious code and
+captured-output limits apply after allocation. Use trusted reviewed sources and
+an authorized operation. No fetching, installation, build or device procedure is
+provided.
+
+Exit 0 means the selected checks passed (default may report incomplete); strict
+incomplete receipts exit 1; malformed/unsafe/failed-source checks exit 2 with
+stable JSON errors. All modes retain device/inference readiness false. Read the
+[design and frozen evidence scope](../docs/design/packed-oracle.md): synthetic
+Q2_0/Q8_0 packed tests are not IQ, quantizer, native/SIMD, model, RTL, DMA or
+performance evidence and do not accept the parent primitives/backend tasks.
+
 ## Hardware/network-free tests
 
 ```bash

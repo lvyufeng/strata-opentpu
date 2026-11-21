@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "contract_id": "opentpu-q2-q8-packed-synthetic-v1",
+  "evidence_scope": "supplied-packed-synthetic",
+  "central_issue": "https://github.com/lvyufeng/strata-opentpu/issues/17",
+  "arithmetic_id": "strata-generic-f32-rne-separate-v1",
+  "sources": {
+    "strata": {
+      "repository": "https://github.com/lvyufeng/Strata",
+      "revision": "3142b66b96e9c0e775e30f620b11b191a1427c2a"
+    },
+    "opentpu_base": {
+      "repository": "https://github.com/lvyufeng/openTPU",
+      "revision": "d84db55712aba0d40811d7762cb052f05d55b7e5"
+    }
+  },
+  "formats": {
+    "Q2_0": {"ggml_type": 42, "block_elements": 64, "block_bytes": 18, "activation_format": "Q8_0", "byte_order": "little"},
+    "Q8_0": {"ggml_type": 8, "block_elements": 32, "block_bytes": 34, "activation_format": "Q8_0", "byte_order": "little"}
+  },
+  "limits": {"max_elements": 65536, "max_fixture_bytes": 8388608, "max_cases": 256},
+  "fixture": {
+    "path": "tools/packed_oracle/data/q2_q8_synthetic.json",
+    "fixture_id": "q2-q8-supplied-packed-v1",
+    "payload_sha256": "59a84c7e1884e50a31798cee3a8f171229e26b361d09d80b0f57ddc0c3c04efa",
+    "file_sha256": "709d690afbde91789286a0b991d3dca35f13fb5eaa4e6ef505690ed1295cc4bd",
+    "case_count": 146,
+    "decode_cases": 9,
+    "dot_cases": 137
+  },
+  "oracle": {
+    "repository": "https://github.com/lvyufeng/openTPU",
+    "revision": "1fdfa39feb3ba3177d43d63345b2e42aca1fc34d",
+    "module": "tools.packed_oracle",
+    "workflow_path": ".github/workflows/packed-oracle.yml",
+    "workflow_name": "Packed-byte oracle checks"
+  },
+  "licenses": [
+    {"id": "strata", "license": "MIT", "path": "tools/packed_oracle/licenses/STRATA-MIT.txt", "source_path": "LICENSE", "sha256": "949b9b0aada7476006469e58ee4ffb0e0f68c2d9137e90a356757b61a09d37f0"},
+    {"id": "ggml", "license": "MIT", "path": "tools/packed_oracle/licenses/GGML-MIT.txt", "source_path": "engine/third_party/strata-ggml/LICENSE", "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"}
+  ],
+  "provenance": {
+    "strata_anchors": [
+      {"path": "engine/src/quant/dequant.cpp", "start_line": 25, "end_line": 43},
+      {"path": "engine/src/quant/dequant.cpp", "start_line": 139, "end_line": 153},
+      {"path": "engine/src/quant/dot_generic.cpp", "start_line": 22, "end_line": 63},
+      {"path": "engine/src/quant/dot_generic.cpp", "start_line": 203, "end_line": 226},
+      {"path": "engine/include/strata/quant/strata-quant-common.h", "start_line": 195, "end_line": 201},
+      {"path": "engine/include/strata/quant/strata-quant-common.h", "start_line": 266, "end_line": 272}
+    ],
+    "ggml_origin_revision": "3cf03257f219afbe7334045ff7c6a06ac68c627d",
+    "generator": {"id": "fraction-integer-reference", "version": 1},
+    "expected_derivation": "independent exact rational binary32 RNE; no DUT results",
+    "scope_exclusions": ["real-model coverage", "native CPU or AVX parity", "RTL or FPGA parity", "DMA or device operations", "quantization or model loading", "performance or whole decode"]
+  },
+  "acceptance": {
+    "kind": "reviewed-synthetic-source-preparation",
+    "local_python_versions": ["3.11", "3.14"],
+    "independent_math_review": true,
+    "independent_scope_license_review": true,
+    "ci": {
+      "url": "https://github.com/lvyufeng/openTPU/actions/runs/44931561445",
+      "head_sha": "1fdfa39feb3ba3177d43d63345b2e42aca1fc34d",
+      "workflow": "Packed-byte oracle checks",
+      "event": "push",
+      "conclusion": "success",
+      "python_versions": ["3.11", "3.14"]
+    }
+  }
+}

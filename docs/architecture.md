@@ -52,6 +52,15 @@ library alone is not a complete CPU-only Strata engine.
 The integration layer selects a tested combination and invokes its supported
 entry points; it must not hide missing operators behind a profile marked ready.
 
+The [supplied-packed scalar preparation](design/packed-oracle.md) is a narrow
+source-level step in the openTPU fork: Q2_0/Q8_0 decode/dot and independently
+generated synthetic goldens. This repository checks a pinned acceptance receipt
+and fixture integrity rather than duplicating low-bit math. It is not an IQ
+codebook implementation, quantizer, native CPU replacement or RTL/device adapter.
+Its oracle commit is pinned separately from the unchanged bootstrap dependency
+lock; passing synthetic tests does not accept or unblock the parent primitives
+or model backend tasks and does not enable inference or device operations.
+
 ## Reference development target
 
 Dual Xeon E5 v4 (AVX2/FMA, no AVX-512/VNNI/AMX), NUMA host RAM (1 TiB reference),

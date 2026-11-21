@@ -43,6 +43,16 @@ its parent's real measurements, supply unknown model/device facts or authorize
 future builds, downloads or hardware access. Follow native relations and Project
 fields for their live state, not this entry-point index.
 
+Independent M3 source preparation is tracked in
+[supplied-packed Q2_0/Q8_0 oracle subtask #17](https://github.com/lvyufeng/strata-opentpu/issues/17)
+under the low-bit primitives task. The openTPU fork owns scalar math, independently
+generated synthetic vectors and their source-test CI; integration owns the
+[receipt/integrity contract](design/packed-oracle.md) and central acceptance.
+Only exact reviewed commits and successful public CI qualify at this narrow
+synthetic scope. Accepting the preparation does not accept or unblock #8, #9 or
+the full-model roadmap; native/RTL/device, actual mixed tensors and full-wall
+measurements remain separate gates. The bootstrap source lock is unchanged.
+
 ## Project fields and states
 
 | Field | Meaning |

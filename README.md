@@ -130,6 +130,26 @@ Their parent tasks still require actual mixed-tensor metadata, authorized resour
 and reproducible measurements. No bootstrap execution capability is enabled.
 See the [script reference](scripts/README.md) for offline entry points and limits.
 
+## Supplied-packed scalar preparation
+
+[Packed-oracle subtask #17](https://github.com/lvyufeng/strata-opentpu/issues/17)
+adds an opt-in Q2_0/Q8_0 scalar decode/dot reference and independently generated
+synthetic goldens in the openTPU fork. The integration
+[contract/receipt](configs/contracts/opentpu-packed-oracle.json) and
+[checker](scripts/check_packed_oracle.py) pin source identity, fixture integrity,
+licenses and reviewed public CI; they do not duplicate the math.
+
+```sh
+python3 scripts/check_packed_oracle.py --strict-receipt # receipt only; no source execution
+```
+
+See the [packed-oracle design](docs/design/packed-oracle.md) for the selected
+binary32 arithmetic, explicit trusted-source opt-in and limitations. Its 146
+synthetic cases are not native/SIMD, IQ2_XS/IQ3_S, real-model, RTL/device or
+throughput evidence. Accepting this narrow preparation does not accept or unblock
+its parent #8, the Strata backend or the full-decode goal, and enables no bootstrap
+execution capability.
+
 ## Documentation and experiments
 
 - [Architecture](docs/architecture.md) and [roadmap](docs/roadmap.md)
