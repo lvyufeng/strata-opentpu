@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "purpose": "planned-integration-references",
+  "captured_on": "2026-11-21",
+  "projects": {
+    "strata": {
+      "repository": "https://github.com/Niko1221/Strata",
+      "revision": "3142b66b96e9c0e775e30f620b11b191a1427c2a",
+      "license": "MIT",
+      "status": "not-integrated",
+      "role": "Audited AVX2 quantized CPU expert kernels"
+    },
+    "opentpu": {
+      "repository": "https://github.com/FeSens/openTPU",
+      "revision": "d84db55712aba0d40811d7762cb052f05d55b7e5",
+      "license": "Apache-2.0",
+      "status": "not-integrated",
+      "role": "FPGA execution and PCIe transport"
+    }
+  }
+}

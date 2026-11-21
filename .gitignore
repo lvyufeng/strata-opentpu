@@ -1,0 +1,38 @@
+# Python and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+# Private settings and results
+.DS_Store
+.env
+.env.*
+!.env.example
+local/
+private/
+results/
+logs/
+*.log
+# Builds, dependencies, models and caches
+build/
+dist/
+.cache/
+third_party/
+*.gguf
+*.safetensors
+*.pt
+*.pth
+*.onnx
+# Hardware outputs; vendor IP/licenses must never be published
+.Xil/
+*.bit
+*.bin
+*.dcp
+*.jou
+*.wdb
+*.xsa
+*.lic
