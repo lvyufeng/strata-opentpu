@@ -107,6 +107,29 @@ The second command never fetches sources. It checks citation ranges/excerpts
 against clean pinned local checkouts, not the semantic truth of the audit or
 model correctness. See the [script reference](scripts/README.md).
 
+## Offline feasibility and CPU evidence preparation
+
+The [resource-budget design](docs/design/resource-budget.md) and
+[offline checker](scripts/resource_budget.py) account for each DDR bank and host
+NUMA quota separately, packed tensor metadata, state/workspace/DMA allocations and
+dependency-aware wall time. The
+[reference budget](configs/budgets/kintex7-qwen38-reference.json) deliberately keeps
+unmeasured quantities unknown; an incomplete budget is not a fit or a speed result.
+
+The [CPU cold-expert protocol](benchmarks/cpu-cold-expert-protocol.md),
+[partial evidence template](benchmarks/templates/cpu-cold-expert.json) and
+[offline validator](scripts/check_cpu_evidence.py) define source/format/ISA/NUMA,
+numerical and repeated full-branch wall-time evidence. They neither run Strata nor
+provide a second CPU engine, obtain model tensors or certify submitted data as true.
+Synthetic tests and accepted evidence structure are not measured CPU performance.
+
+These independently scoped preparations are tracked in
+[resource-budget subtask #15](https://github.com/lvyufeng/strata-opentpu/issues/15)
+and [CPU-evidence subtask #16](https://github.com/lvyufeng/strata-opentpu/issues/16).
+Their parent tasks still require actual mixed-tensor metadata, authorized resources
+and reproducible measurements. No bootstrap execution capability is enabled.
+See the [script reference](scripts/README.md) for offline entry points and limits.
+
 ## Documentation and experiments
 
 - [Architecture](docs/architecture.md) and [roadmap](docs/roadmap.md)

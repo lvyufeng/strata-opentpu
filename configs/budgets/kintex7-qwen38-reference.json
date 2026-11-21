@@ -1,0 +1,404 @@
+{
+  "schema_version": 1,
+  "id": "kintex7-qwen38-reference",
+  "input_kind": "reference",
+  "notes": [
+    "Reference only, not a measured host/board/model profile.",
+    "Two 2 GiB DDR3 banks are source/reference capacities; usable reserve, fragmentation and bank mapping are unknown.",
+    "Dual E5-2696v4: 44 physical cores, 88 logical threads, AVX2/FMA, total 1 TiB RAM. Do not infer per-NUMA capacity or PCIe locality.",
+    "PCIe Gen2x8 is endpoint capability only; negotiated link and directional payload bandwidth are unknown.",
+    "Aggregate GGUF/shard bytes cannot be divided into expert budgets; IQ2_XS is not openTPU FP4.",
+    "Preserve Strata hot experts, CPU cold experts, adaptive cache, full top10+shared, skip0 and MTP accepted-state rules."
+  ],
+  "source_pins": {
+    "Strata": "3142b66b96e9c0e775e30f620b11b191a1427c2a",
+    "openTPU": "d84db55712aba0d40811d7762cb052f05d55b7e5"
+  },
+  "model": {
+    "layers": 48,
+    "context_tokens": null,
+    "sessions": 1,
+    "routed_top_k": 10,
+    "expert_skip": 0,
+    "shared_expert": true
+  },
+  "memory": {
+    "device": {
+      "capacity_bytes": 4294967296,
+      "banks": [
+        {
+          "id": "ddr0",
+          "capacity_bytes": 2147483648,
+          "reserve_bytes": null,
+          "fragmentation_bytes": null
+        },
+        {
+          "id": "ddr1",
+          "capacity_bytes": 2147483648,
+          "reserve_bytes": null,
+          "fragmentation_bytes": null
+        }
+      ]
+    },
+    "host": {
+      "capacity_bytes": 1099511627776,
+      "reserve_bytes": null,
+      "fragmentation_bytes": null,
+      "pinned_quota_bytes": null,
+      "numa_nodes": [
+        {
+          "id": "numa0",
+          "capacity_bytes": null,
+          "reserve_bytes": null,
+          "fragmentation_bytes": null,
+          "pinned_quota_bytes": null
+        },
+        {
+          "id": "numa1",
+          "capacity_bytes": null,
+          "reserve_bytes": null,
+          "fragmentation_bytes": null,
+          "pinned_quota_bytes": null
+        }
+      ]
+    },
+    "coverage": {
+      "fixed_weights": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "hot_experts": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "cold_experts": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "shared_experts": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "ple_ngram_weights": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "draft_weights": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "fixed_buffers": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "kv": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "qsa_indexer": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "deltanet_recurrent": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "deltanet_conv": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "ple_ngram_state": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "residual_draft": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "sampler_history": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "cache_metadata": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "workspace": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "dma_staging": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      },
+      "conversion_workspace": {
+        "status": "unknown",
+        "reason": "Actual mixed tensor metadata, full state allocation and placement not supplied."
+      }
+    },
+    "tensors": [],
+    "allocations": []
+  },
+  "wall": {
+    "mode": "mtp_off",
+    "count_basis": "accepted_output_tokens",
+    "accepted_tokens": 1,
+    "coverage": {
+      "non_expert": {
+        "status": "unknown",
+        "reason": "No complete decode wall trace or directional sustained transfer measurements supplied."
+      },
+      "cache_misses": {
+        "status": "unknown",
+        "reason": "No complete decode wall trace or directional sustained transfer measurements supplied."
+      },
+      "transfers": {
+        "status": "unknown",
+        "reason": "No complete decode wall trace or directional sustained transfer measurements supplied."
+      },
+      "numa_traffic": {
+        "status": "unknown",
+        "reason": "No complete decode wall trace or directional sustained transfer measurements supplied."
+      },
+      "sync_merge": {
+        "status": "unknown",
+        "reason": "No complete decode wall trace or directional sustained transfer measurements supplied."
+      },
+      "sampling": {
+        "status": "unknown",
+        "reason": "No complete decode wall trace or directional sustained transfer measurements supplied."
+      },
+      "fallback": {
+        "status": "unknown",
+        "reason": "No complete decode wall trace or directional sustained transfer measurements supplied."
+      },
+      "mtp_verify_commit": {
+        "status": "absent",
+        "reason": "MTP-off reference; use a separate MTP-on budget with accepted-frontier accounting."
+      }
+    },
+    "numa": {
+      "pcie_local_node": null,
+      "transfer_worker_node": null,
+      "cpu_worker_nodes": null,
+      "page_placement_declared": null
+    },
+    "link": {
+      "endpoint_capability": {
+        "generation": 2,
+        "lanes": 8
+      },
+      "negotiated": {
+        "generation": null,
+        "lanes": null
+      },
+      "h2d": {
+        "payload_bytes_per_second": null,
+        "submission_milliseconds": null
+      },
+      "d2h": {
+        "payload_bytes_per_second": null,
+        "submission_milliseconds": null
+      }
+    },
+    "stages": [
+      {
+        "id": "all-layer-template",
+        "scope": "layer",
+        "repeat": 48,
+        "coverage": {
+          "fixed": {
+            "status": "unknown",
+            "reason": "Placeholder only; split QSA/DeltaNet/other layers with actual full operator timing."
+          },
+          "shared_expert": {
+            "status": "unknown",
+            "reason": "Placeholder only; split QSA/DeltaNet/other layers with actual full operator timing."
+          },
+          "routing": {
+            "status": "unknown",
+            "reason": "Placeholder only; split QSA/DeltaNet/other layers with actual full operator timing."
+          },
+          "activation": {
+            "status": "unknown",
+            "reason": "Placeholder only; split QSA/DeltaNet/other layers with actual full operator timing."
+          },
+          "state": {
+            "status": "unknown",
+            "reason": "Placeholder only; split QSA/DeltaNet/other layers with actual full operator timing."
+          },
+          "cold_expert": {
+            "status": "unknown",
+            "reason": "Placeholder only; split QSA/DeltaNet/other layers with actual full operator timing."
+          },
+          "hot_expert": {
+            "status": "unknown",
+            "reason": "Placeholder only; split QSA/DeltaNet/other layers with actual full operator timing."
+          },
+          "transfers": {
+            "status": "unknown",
+            "reason": "Placeholder only; split QSA/DeltaNet/other layers with actual full operator timing."
+          },
+          "cache_misses": {
+            "status": "unknown",
+            "reason": "Placeholder only; split QSA/DeltaNet/other layers with actual full operator timing."
+          },
+          "numa_traffic": {
+            "status": "unknown",
+            "reason": "Placeholder only; split QSA/DeltaNet/other layers with actual full operator timing."
+          },
+          "sync_merge": {
+            "status": "unknown",
+            "reason": "Placeholder only; split QSA/DeltaNet/other layers with actual full operator timing."
+          }
+        },
+        "overlap": {
+          "mode": "independent_experts",
+          "supported": null,
+          "evidence": null
+        },
+        "before": [
+          {
+            "id": "layer-serial",
+            "kind": "host",
+            "covers": [
+              "fixed",
+              "shared_expert",
+              "routing",
+              "activation",
+              "state",
+              "numa_traffic"
+            ],
+            "depends_on": [],
+            "milliseconds": null
+          }
+        ],
+        "cpu": [
+          {
+            "id": "cold-experts-and-cache",
+            "kind": "cpu",
+            "covers": [
+              "cold_expert",
+              "cache_misses"
+            ],
+            "depends_on": [],
+            "milliseconds": null
+          }
+        ],
+        "fpga": [
+          {
+            "id": "hot-input-h2d",
+            "kind": "h2d",
+            "covers": [
+              "transfers"
+            ],
+            "depends_on": [],
+            "bytes": null,
+            "submissions": null
+          },
+          {
+            "id": "hot-experts",
+            "kind": "fpga",
+            "covers": [
+              "hot_expert"
+            ],
+            "depends_on": [
+              "hot-input-h2d"
+            ],
+            "milliseconds": null
+          },
+          {
+            "id": "hot-output-d2h",
+            "kind": "d2h",
+            "covers": [
+              "transfers"
+            ],
+            "depends_on": [
+              "hot-experts"
+            ],
+            "bytes": null,
+            "submissions": null
+          }
+        ],
+        "after": [
+          {
+            "id": "layer-join",
+            "kind": "sync",
+            "covers": [
+              "sync_merge"
+            ],
+            "depends_on": [
+              "cold-experts-and-cache",
+              "hot-output-d2h"
+            ],
+            "milliseconds": null
+          }
+        ]
+      },
+      {
+        "id": "outside-layers-template",
+        "scope": "non_expert",
+        "repeat": 1,
+        "coverage": {
+          "embedding": {
+            "status": "unknown",
+            "reason": "Placeholder only; full embedding/head/sampler/state/fallback wall cost unknown."
+          },
+          "head": {
+            "status": "unknown",
+            "reason": "Placeholder only; full embedding/head/sampler/state/fallback wall cost unknown."
+          },
+          "sampling": {
+            "status": "unknown",
+            "reason": "Placeholder only; full embedding/head/sampler/state/fallback wall cost unknown."
+          },
+          "state": {
+            "status": "unknown",
+            "reason": "Placeholder only; full embedding/head/sampler/state/fallback wall cost unknown."
+          },
+          "numa_traffic": {
+            "status": "unknown",
+            "reason": "Placeholder only; full embedding/head/sampler/state/fallback wall cost unknown."
+          },
+          "fallback": {
+            "status": "unknown",
+            "reason": "Placeholder only; full embedding/head/sampler/state/fallback wall cost unknown."
+          }
+        },
+        "overlap": {
+          "mode": "serial"
+        },
+        "before": [
+          {
+            "id": "embedding",
+            "kind": "host",
+            "covers": [
+              "embedding"
+            ],
+            "depends_on": [],
+            "milliseconds": null
+          }
+        ],
+        "cpu": [],
+        "fpga": [],
+        "after": [
+          {
+            "id": "head-and-sampling",
+            "kind": "host",
+            "covers": [
+              "head",
+              "sampling",
+              "state",
+              "numa_traffic",
+              "fallback"
+            ],
+            "depends_on": [
+              "embedding"
+            ],
+            "milliseconds": null
+          }
+        ]
+      }
+    ]
+  }
+}

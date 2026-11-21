@@ -4,6 +4,9 @@
 import json
 from pathlib import Path
 import re
+import subprocess
+import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -108,6 +111,45 @@ class BootstrapTests(unittest.TestCase):
         self.assertIn("projects/11", issue)
         self.assertIn("Refs https://github.com/lvyufeng/strata-opentpu/issues/N", pr)
         self.assertIn("central acceptance", pr)
+
+    def test_offline_preparation_default_inputs_are_inert(self):
+        # Run outside the repository: defaults must be anchored to the tool's
+        # root, not CWD; no dependency fetch or target-device access is needed.
+        with tempfile.TemporaryDirectory() as directory:
+            tools = (
+                ("resource_budget.py", "--strict"),
+                ("check_cpu_evidence.py", "--strict-complete"),
+            )
+            for name, strict_flag in tools:
+                command = [sys.executable, str(ROOT / "scripts" / name)]
+                with self.subTest(tool=name):
+                    partial = subprocess.run(
+                        command, cwd=directory, capture_output=True, text=True,
+                        check=False, timeout=10,
+                    )
+                    self.assertEqual(partial.returncode, 0, partial.stderr)
+                    report = json.loads(partial.stdout)
+                    self.assertIs(report["inference_ready"], False)
+                    strict = subprocess.run(
+                        [*command, strict_flag], cwd=directory,
+                        capture_output=True, text=True, check=False, timeout=10,
+                    )
+                    self.assertEqual(strict.returncode, 1, strict.stderr)
+            self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_offline_preparation_scope_and_ci(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        contract = (ROOT / "docs/development.md").read_text(encoding="utf-8")
+        workflow = (ROOT / ".github/workflows/bootstrap.yml").read_text(encoding="utf-8")
+        for number in (15, 16):
+            url = f"https://github.com/lvyufeng/strata-opentpu/issues/{number}"
+            self.assertIn(url, readme)
+            self.assertIn(url, contract)
+        self.assertIn("No bootstrap execution capability is enabled", readme)
+        for script in ("resource_budget.py", "check_cpu_evidence.py"):
+            self.assertIn(f"python scripts/{script}", workflow)
+        self.assertIn("not measured feasibility", workflow)
+        self.assertIn("not a CPU experiment", workflow)
 
     def test_license(self):
         text = (ROOT / "LICENSE").read_text(encoding="utf-8")

@@ -1,6 +1,14 @@
 # Benchmark protocol (planned)
 
 No inference measurements here yet.
+The [CPU cold-expert evidence protocol](cpu-cold-expert-protocol.md) and
+[partial JSON template](templates/cpu-cold-expert.json) prepare reproducible block,
+dot and full gate/up/activation/down branch experiments. Their
+[offline validator](../scripts/check_cpu_evidence.py) checks declared evidence
+consistency, not its scientific authenticity; it does not build or run CPU kernels.
+An accepted branch experiment is still not full-model CPU decode or a wall-token
+rate. Actual experiments need specific host/input/build authorization.
+
 Record software/checkpoint revisions, checksums, actual formats, CPU features,
 threads/NUMA, bitstream/config, negotiated link/measured DMA, context/output count,
 batch/concurrency, sampling/seed, warm/cold state, partition and memory footprint.

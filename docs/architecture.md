@@ -92,3 +92,11 @@ FPGA tokens/s cannot be added. The >10 single-user wall decode tokens/s target
 requires <100 ms/token including all layers, host work, transfers, and sync.
 No result is claimed. Use full routing, expert skip=0, and separate MTP off/on
 runs under the [benchmark protocol](../benchmarks/README.md).
+
+The [offline budget contract](design/resource-budget.md) makes the bank/host,
+packed-weight, complete-state and dependency accounting explicit. Its reference
+inputs remain incomplete, not measured feasibility. The
+[CPU evidence protocol](../benchmarks/cpu-cold-expert-protocol.md) covers existing
+Strata cold-expert branches, not a replacement engine or proof that fixed work
+already runs on CPU. Both are preparatory artifacts; operation-specific permission
+and actual model/host/device evidence remain separate gates.

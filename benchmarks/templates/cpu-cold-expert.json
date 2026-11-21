@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "protocol": "strata-cpu-cold-expert-v1",
+  "evidence_kind": "partial",
+  "source": {
+    "repository": "https://github.com/lvyufeng/Strata",
+    "revision": "3142b66b96e9c0e775e30f620b11b191a1427c2a"
+  },
+  "provenance": {
+    "experiment_id": null,
+    "observed_at": null,
+    "operator_label": null,
+    "producer": null,
+    "raw_artifact_sha256": null
+  },
+  "build": {
+    "compiler": null,
+    "compiler_version": null,
+    "flags": null,
+    "avx2_translation_unit_flags": null,
+    "quant_backend": null,
+    "ggml_revision": null,
+    "compiled_isa_floor": null,
+    "binary_sha256": null,
+    "build_log_sha256": null,
+    "environment": null
+  },
+  "host": {
+    "label": null,
+    "architecture": null,
+    "os": null,
+    "sockets": null,
+    "numa_nodes": null,
+    "topology": null,
+    "features": {
+      "osxsave": null,
+      "avx": null,
+      "fma": null,
+      "f16c": null,
+      "avx2": null
+    },
+    "cpuid_1_ecx": null,
+    "cpuid_7_ebx": null,
+    "xgetbv_executed": null,
+    "xcr0": null,
+    "avx2_usable": null,
+    "feature_probe_sha256": null,
+    "topology_sha256": null
+  },
+  "routing": {
+    "top_k": 10,
+    "expert_skip": 0,
+    "mtp": "off"
+  },
+  "matrix": {
+    "formats": ["IQ2_XS", "Q2_0", "IQ3_S"],
+    "roles": ["gate", "up", "down"],
+    "batch_sizes": [1, 4],
+    "thread_counts": [1, 2],
+    "numa_policies": ["local", "remote", "interleave", "contention"],
+    "cache_states": ["warm", "cold"],
+    "worker_nodes": null,
+    "repeat_count": 5,
+    "warmup_count": 1
+  },
+  "profiles": [
+    {
+      "id": "iq2-xs-selected-mixed-role",
+      "target_format": "IQ2_XS",
+      "data_origin": null,
+      "model_id": null,
+      "model_sha256": null,
+      "tensor_metadata_sha256": null,
+      "layer": null,
+      "expert": null,
+      "n_embd": null,
+      "n_ff": null,
+      "layout": "native-row-packed-gate-up-down-v1",
+      "blob_sha256": null,
+      "blob_bytes": null,
+      "roles": {
+        "gate": {"tensor_name": null, "format": "IQ2_XS", "type_id": 17, "shape": null, "block_values": 256, "block_bytes": 74, "row_bytes": null, "offset_bytes": 0, "tensor_sha256": null, "native_vec_dot_activation": "Q8_K"},
+        "up": {"tensor_name": null, "format": "IQ2_XS", "type_id": 17, "shape": null, "block_values": 256, "block_bytes": 74, "row_bytes": null, "offset_bytes": null, "tensor_sha256": null, "native_vec_dot_activation": "Q8_K"},
+        "down": {"tensor_name": null, "format": null, "type_id": null, "shape": null, "block_values": null, "block_bytes": null, "row_bytes": null, "offset_bytes": null, "tensor_sha256": null, "native_vec_dot_activation": null}
+      }
+    },
+    {
+      "id": "q2-0-selected-role-metadata",
+      "target_format": "Q2_0",
+      "data_origin": null,
+      "model_id": null,
+      "model_sha256": null,
+      "tensor_metadata_sha256": null,
+      "layer": null,
+      "expert": null,
+      "n_embd": null,
+      "n_ff": null,
+      "layout": "native-row-packed-gate-up-down-v1",
+      "blob_sha256": null,
+      "blob_bytes": null,
+      "roles": {
+        "gate": {"tensor_name": null, "format": "Q2_0", "type_id": 42, "shape": null, "block_values": 64, "block_bytes": 18, "row_bytes": null, "offset_bytes": 0, "tensor_sha256": null, "native_vec_dot_activation": "Q8_0"},
+        "up": {"tensor_name": null, "format": "Q2_0", "type_id": 42, "shape": null, "block_values": 64, "block_bytes": 18, "row_bytes": null, "offset_bytes": null, "tensor_sha256": null, "native_vec_dot_activation": "Q8_0"},
+        "down": {"tensor_name": null, "format": null, "type_id": null, "shape": null, "block_values": null, "block_bytes": null, "row_bytes": null, "offset_bytes": null, "tensor_sha256": null, "native_vec_dot_activation": null}
+      }
+    },
+    {
+      "id": "iq3-s-selected-mixed-role",
+      "target_format": "IQ3_S",
+      "data_origin": null,
+      "model_id": null,
+      "model_sha256": null,
+      "tensor_metadata_sha256": null,
+      "layer": null,
+      "expert": null,
+      "n_embd": null,
+      "n_ff": null,
+      "layout": "native-row-packed-gate-up-down-v1",
+      "blob_sha256": null,
+      "blob_bytes": null,
+      "roles": {
+        "gate": {"tensor_name": null, "format": "IQ3_S", "type_id": 21, "shape": null, "block_values": 256, "block_bytes": 110, "row_bytes": null, "offset_bytes": 0, "tensor_sha256": null, "native_vec_dot_activation": "Q8_K"},
+        "up": {"tensor_name": null, "format": "IQ3_S", "type_id": 21, "shape": null, "block_values": 256, "block_bytes": 110, "row_bytes": null, "offset_bytes": null, "tensor_sha256": null, "native_vec_dot_activation": "Q8_K"},
+        "down": {"tensor_name": null, "format": null, "type_id": null, "shape": null, "block_values": null, "block_bytes": null, "row_bytes": null, "offset_bytes": null, "tensor_sha256": null, "native_vec_dot_activation": null}
+      }
+    }
+  ],
+  "cases": [],
+  "notes": [
+    "Source-only protocol/template. No CPU build, model extraction, host probe, NUMA experiment or benchmark has been performed or authorized by this file.",
+    "Null means unknown, not unsupported, zero or a successful measurement. Matrix axes are planned, not observed.",
+    "Per-role model formats and tensor hashes remain unknown. Never pack a 640-column down row as IQ2_XS/IQ3_S (256-value blocks).",
+    "Full routing top10/expert_skip0/MTPoff is required, but CPU branch evidence is not end-to-end inference or >10 tok/s evidence.",
+    "No addresses, model paths, credentials, binary payloads, or fabricated host/performance values are included."
+  ]
+}

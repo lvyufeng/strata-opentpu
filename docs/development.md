@@ -34,6 +34,15 @@ snapshot. Read GitHub for current state and follow-up tasks.
 | M4 | [Build/volatile-program profile](https://github.com/lvyufeng/strata-opentpu/issues/10), [real hardware smoke](https://github.com/lvyufeng/strata-opentpu/issues/11) |
 | M5 | [Ordinary-decode correctness](https://github.com/lvyufeng/strata-opentpu/issues/12), [MTP validation](https://github.com/lvyufeng/strata-opentpu/issues/13), [wall-decode experiment](https://github.com/lvyufeng/strata-opentpu/issues/14) |
 
+Independent M2 preparation has narrower native child Issues:
+[offline resource-budget checker](https://github.com/lvyufeng/strata-opentpu/issues/15)
+under the memory/PCIe task and
+[CPU evidence protocol/validator](https://github.com/lvyufeng/strata-opentpu/issues/16)
+under the CPU/NUMA baseline. Accepting either preparatory artifact does not accept
+its parent's real measurements, supply unknown model/device facts or authorize
+future builds, downloads or hardware access. Follow native relations and Project
+fields for their live state, not this entry-point index.
+
 ## Project fields and states
 
 | Field | Meaning |

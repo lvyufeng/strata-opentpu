@@ -84,6 +84,54 @@ provided excerpt. It does not run source code, prove a citation's interpretation
 inspect model tensors or certify inference. Success prints JSON; validation
 failure exits 1. This is independent of the bootstrap CLI's exit-code contract.
 
+## Offline resource budgets
+
+The [budget checker](resource_budget.py) reads the
+[reference budget](../configs/budgets/kintex7-qwen38-reference.json) by default,
+or one explicit JSON input:
+
+```sh
+python3 scripts/resource_budget.py
+python3 scripts/resource_budget.py local/budget.json --strict
+```
+
+It checks per-bank placement, host/global/NUMA and pinned quotas, complete
+allocation inventories, packed tensor metadata and ordered wall-time dependencies.
+It does not use total GGUF size as expert bytes or add CPU/FPGA token rates.
+Unknown reserves, state, metadata or timings stay unknown, not zero or a fit.
+Default mode reports incomplete or over-capacity budgets with exit 0;
+`--strict` exits 1 unless the required budget is complete and within all quotas.
+Malformed JSON/schema or I/O errors exit 2. Reports are analytical only, not device
+or inference readiness. See the [budget design](../docs/design/resource-budget.md).
+
+## Offline CPU evidence
+
+The [CPU evidence validator](check_cpu_evidence.py) reads the
+[partial template](../benchmarks/templates/cpu-cold-expert.json) by default:
+
+```sh
+python3 scripts/check_cpu_evidence.py
+python3 scripts/check_cpu_evidence.py local/cpu-evidence.json --strict-complete
+python3 scripts/check_cpu_evidence.py local/cpu-evidence.json --strict-accept
+```
+
+Default mode reports missing evidence without claiming completeness. Malformed or
+contradictory input fails nonzero. `--strict-complete` requires structurally complete,
+explicitly measured evidence; a documented Reject/error experiment can qualify
+without claiming numerical acceptance. `--strict-accept` additionally requires every
+required numerical, ISA and observed placement gate to pass. Neither strict mode
+accepts synthetic evidence.
+Read the [protocol](../benchmarks/cpu-cold-expert-protocol.md) for source/role/ISA,
+thread/NUMA, elementwise-error, coverage and repeated full-branch wall-time rules.
+The checker cannot independently verify supplied measurements or turn a branch
+experiment into a full-model CPU decode result.
+
+Both tools use only the standard library and read input data; they do not execute
+commands, paths or URLs embedded in reports, fetch sources/models, build kernels
+or access target hosts/devices. Default inputs resolve relative to the repository,
+not the caller's working directory. Passing them is not operation authorization
+and does not implement the planned bootstrap commands.
+
 ## Hardware/network-free tests
 
 ```bash
