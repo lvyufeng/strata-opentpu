@@ -61,6 +61,14 @@ Its oracle commit is pinned separately from the unchanged bootstrap dependency
 lock; passing synthetic tests does not accept or unblock the parent primitives
 or model backend tasks and does not enable inference or device operations.
 
+The [bounded local header inventory](design/gguf-inventory.md) extends Strata's
+existing quant-format tool through a thin bounded stream adapter, not another
+parser or intake. Integration checks only JSON structure, row-block arithmetic,
+offsets and declared split facts. Unknown layouts remain null; header digests
+are not artifact/tensor integrity or provenance. Even a complete synthetic header
+set does not supply actual mixed-model, bank/state/residency, CPU/reference or
+device evidence. No model is acquired and the bootstrap lock is unchanged.
+
 ## Reference development target
 
 Dual Xeon E5 v4 (AVX2/FMA, no AVX-512/VNNI/AMX), NUMA host RAM (1 TiB reference),

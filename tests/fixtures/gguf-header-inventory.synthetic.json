@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "kind": "gguf-header-inventory",
+  "input_kind": "synthetic",
+  "producer": {
+    "tool": "Strata/terminal/tools/quant_formats.py",
+    "mode": "bounded-local-v1",
+    "base_revision": "3142b66b96e9c0e775e30f620b11b191a1427c2a",
+    "parser_sha256": "c84a0f88c6c75a588cb7de74abd23b2e6387c92c58e088012aedef5bd3c6c431"
+  },
+  "limits": {
+    "max_shards": 64,
+    "max_header_bytes_per_file": 16777216,
+    "max_header_bytes_total": 33554432,
+    "max_string_bytes": 1048576,
+    "max_string_bytes_total": 16777216,
+    "max_metadata_entries_per_file": 4096,
+    "max_metadata_entries_total": 8192,
+    "max_tensors_total": 100000,
+    "max_array_items_per_file": 500000,
+    "max_array_items_total": 1000000,
+    "max_rank": 8,
+    "max_glob_entries": 4096,
+    "max_path_arguments": 64
+  },
+  "shards": [
+    {
+      "label": "shard-0000", "file_size_bytes": 4096, "gguf_version": 3,
+      "alignment_bytes": 32, "header_end_bytes": 400, "data_start_bytes": 416,
+      "header_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "artifact_sha256": null, "payload_read": false, "tensor_count": 3,
+      "split": {"index": 0, "count": 2, "total_tensors": 5}
+    },
+    {
+      "label": "shard-0001", "file_size_bytes": 4096, "gguf_version": 3,
+      "alignment_bytes": 32, "header_end_bytes": 320, "data_start_bytes": 320,
+      "header_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "artifact_sha256": null, "payload_read": false, "tensor_count": 2,
+      "split": {"index": 1, "count": 2, "total_tensors": 5}
+    }
+  ],
+  "tensors": [
+    {
+      "name": "blk.0.ffn_gate_exps.weight", "shard": "shard-0000", "shape": [256, 2, 3],
+      "ggml_type_id": 17, "ggml_type_name": "IQ2_XS",
+      "relative_offset_bytes": 0, "absolute_offset_bytes": 416,
+      "storage": {"layout": "gguf-row-blocks", "block_elements": 256, "block_bytes": 74, "row_stride_bytes": 74, "data_bytes": 444},
+      "tensor_sha256": null
+    },
+    {
+      "name": "blk.0.ffn_up_exps.weight", "shard": "shard-0000", "shape": [128, 2, 3],
+      "ggml_type_id": 42, "ggml_type_name": "Q2_0",
+      "relative_offset_bytes": 448, "absolute_offset_bytes": 864,
+      "storage": {"layout": "gguf-row-blocks", "block_elements": 64, "block_bytes": 18, "row_stride_bytes": 36, "data_bytes": 216},
+      "tensor_sha256": null
+    },
+    {
+      "name": "unverified.tensor", "shard": "shard-0000", "shape": [7, 3],
+      "ggml_type_id": 999, "ggml_type_name": "type999",
+      "relative_offset_bytes": 672, "absolute_offset_bytes": 1088,
+      "storage": {"layout": "unknown", "block_elements": null, "block_bytes": null, "row_stride_bytes": null, "data_bytes": null},
+      "tensor_sha256": null
+    },
+    {
+      "name": "blk.0.ffn_down_exps.weight", "shard": "shard-0001", "shape": [512, 2],
+      "ggml_type_id": 21, "ggml_type_name": "IQ3_S",
+      "relative_offset_bytes": 0, "absolute_offset_bytes": 320,
+      "storage": {"layout": "gguf-row-blocks", "block_elements": 256, "block_bytes": 110, "row_stride_bytes": 220, "data_bytes": 440},
+      "tensor_sha256": null
+    },
+    {
+      "name": "token_embd.weight", "shard": "shard-0001", "shape": [96, 2],
+      "ggml_type_id": 8, "ggml_type_name": "Q8_0",
+      "relative_offset_bytes": 448, "absolute_offset_bytes": 768,
+      "storage": {"layout": "gguf-row-blocks", "block_elements": 32, "block_bytes": 34, "row_stride_bytes": 102, "data_bytes": 204},
+      "tensor_sha256": null
+    }
+  ],
+  "split": {"status": "complete", "declared_shards": 2, "declared_tensors": 5, "present_indices": [0, 1], "missing_indices": [], "diagnostics": []},
+  "totals": {"tensor_count": 5, "known_storage_bytes": 1304, "unknown_storage_tensors": 1},
+  "claims": {
+    "header_only": true, "input_provenance_verified": false,
+    "artifact_integrity_verified": false, "model_completeness_verified": false,
+    "backend_compatibility_verified": false, "device_ready": false, "inference_ready": false
+  }
+}

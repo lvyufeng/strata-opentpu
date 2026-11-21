@@ -172,6 +172,41 @@ stable JSON errors. All modes retain device/inference readiness false. Read the
 Q2_0/Q8_0 packed tests are not IQ, quantizer, native/SIMD, model, RTL, DMA or
 performance evidence and do not accept the parent primitives/backend tasks.
 
+## JSON-only GGUF header inventory
+
+The [inventory validator](check_gguf_inventory.py) checks the
+[receipt schema](../configs/contracts/gguf-header-inventory.schema.json) and
+cross-field semantics without parsing GGUF or executing Strata:
+
+```sh
+python3 scripts/check_gguf_inventory.py
+python3 scripts/check_gguf_inventory.py --receipt local/inventory.json
+python3 scripts/check_gguf_inventory.py --receipt local/inventory.json --strict-complete
+```
+
+Default input is the repository-anchored
+[synthetic receipt](../tests/fixtures/gguf-header-inventory.synthetic.json).
+Only the supplied JSON is read; names, paths, URLs and SHA declarations never open
+referenced artifacts or authorize operations. The bounded strict stdlib loader
+rejects duplicates, nonfinite values, unsafe files and oversized/deep input.
+Validation requires exact fields/types/nulls, generated shard order, raw-shape
+row-block arithmetic, safe offsets/extents and coherent split/count totals.
+Unknown layouts stay null, not zero or backend-supported. Header SHA covers only
+consumed logical header, not padding/payload or authenticated artifact integrity.
+
+A valid incomplete split exits 3 with a summary. `--strict-complete` also exits 3
+for unknown split status or any unknown storage. Malformed/I/O/schema/semantic
+failures exit 2 with empty stdout and a diagnostic on stderr. Valid unknown or
+complete inventories otherwise exit 0; even strict success retains all
+provenance/readiness flags false and `source_identity_verified: false`.
+
+The opt-in source exporter is owned by Strata, not this CLI. See the
+[design/limits/legacy guarantees](../docs/design/gguf-inventory.md) and
+[separate source/CI record](../configs/contracts/strata-gguf-inventory.json).
+There is no model acquisition, full-file/tensor hash, expert slicing, native
+helper, device operation or inferred model completeness. This preparation does
+not accept or unblock the parent budget/backend/full-decode gates.
+
 ## Hardware/network-free tests
 
 ```bash

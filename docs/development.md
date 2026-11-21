@@ -53,6 +53,19 @@ synthetic scope. Accepting the preparation does not accept or unblock #8, #9 or
 the full-model roadmap; native/RTL/device, actual mixed tensors and full-wall
 measurements remain separate gates. The bootstrap source lock is unchanged.
 
+Independent M2 mixed-header preparation is tracked in
+[bounded local inventory subtask #18](https://github.com/lvyufeng/strata-opentpu/issues/18)
+under the memory/PCIe task. Strata owns the existing quant-format entry point and
+bounded header adapter; integration owns the
+[JSON-only contract/validation](design/gguf-inventory.md) and exact source/CI
+acceptance record. No actual licensed model pack is obtained or authenticated,
+and no second GGUF parser, intake, engine or CPU expert slicer is introduced.
+Unknown storage stays null. A declared complete split or accepted synthetic
+receipt does not accept/unblock the measured parent gates. Publish only the
+fork development branch with narrow cached-Python stdlib CI; no Strata PR is
+created because its ordinary PR workflows install/build beyond this scope.
+The bootstrap source lock and disabled execution capabilities remain unchanged.
+
 ## Project fields and states
 
 | Field | Meaning |

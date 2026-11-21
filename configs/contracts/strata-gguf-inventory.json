@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "contract_id": "strata-bounded-gguf-header-inventory-v1",
+  "evidence_scope": "source-and-synthetic-header-preparation",
+  "central_issue": "https://github.com/lvyufeng/strata-opentpu/issues/18",
+  "parent_issue": "https://github.com/lvyufeng/strata-opentpu/issues/6",
+  "receipt_schema": "configs/contracts/gguf-header-inventory.schema.json",
+  "validator": "scripts/check_gguf_inventory.py",
+  "bootstrap_lock_changed": false,
+  "source": {
+    "repository": "https://github.com/lvyufeng/Strata",
+    "branch": "bounded-gguf-inventory",
+    "base_revision": "3142b66b96e9c0e775e30f620b11b191a1427c2a",
+    "revision": "1c6f950cab8b651c2cc3f81245c5369d99fbb227",
+    "tree": "2aaffe985f13e79e07ffe6335a1df6b23d293fea",
+    "tool": "terminal/tools/quant_formats.py",
+    "adapter": "terminal/tools/gguf_inventory.py",
+    "parser": {
+      "path": "terminal/tools/gguf_reader.py",
+      "sha256": "c84a0f88c6c75a588cb7de74abd23b2e6387c92c58e088012aedef5bd3c6c431",
+      "changed": false,
+      "reuse": ["GGUFFile._parse", "GGUFFile._value"]
+    },
+    "file_sha256": {
+      "terminal/tools/gguf_inventory.py": "75ab7ffacd46236955ce28843f2c1da04f7b37b27b6b17db367f8d7d9f8f6823",
+      "terminal/tools/quant_formats.py": "73ff4351d1ed23ca2b150a633079373e37d9bb336751d8dfd1e73e59047571f5",
+      "terminal/tools/test_gguf_inventory.py": "d3d8d6ec08f9084b3e760ea4c41e317ca81048e1e161b9601038632a2cb33094",
+      "docs/QUANTS.md": "ebbaf1fd48d231fc4fd7aab3442b2ac51eb624ed260cf71432cc895d65051414",
+      ".github/workflows/gguf-inventory.yml": "6a2bc652979a3da1f8c3da87e876f9f60e7cef8e97e7462a6877b39983453e3a"
+    },
+    "license": "MIT",
+    "pull_request": null,
+    "upstream_scope_agreement": false,
+    "merged": false
+  },
+  "limits": {
+    "max_shards": 64,
+    "max_header_bytes_per_file": 16777216,
+    "max_header_bytes_total": 33554432,
+    "max_string_bytes": 1048576,
+    "max_string_bytes_total": 16777216,
+    "max_metadata_entries_per_file": 4096,
+    "max_metadata_entries_total": 8192,
+    "max_tensors_total": 100000,
+    "max_array_items_per_file": 500000,
+    "max_array_items_total": 1000000,
+    "max_rank": 8,
+    "max_glob_entries": 4096,
+    "max_path_arguments": 64
+  },
+  "provenance_boundaries": {
+    "input_kind_is_declaration": true,
+    "producer_identifies_base_parser_not_current_executable": true,
+    "header_sha256_scope": "consumed-logical-header-only",
+    "artifact_sha256": null,
+    "tensor_sha256": null,
+    "payload_read": false,
+    "split_complete_means": "declared-header-set-only",
+    "unknown_storage_means": "null-not-zero-fit-or-backend-supported",
+    "logical_limits_are_os_sandbox": false,
+    "same_fd_checks_are_race_proof": false,
+    "json_validator_executes_source": false,
+    "json_validator_opens_referenced_artifacts": false,
+    "json_validator_verifies_source_identity": false
+  },
+  "acceptance": {
+    "kind": "reviewed-synthetic-source-preparation",
+    "local_python_versions": ["3.11", "3.14"],
+    "independent_correctness_review": true,
+    "independent_scope_review": true,
+    "literal_legacy_and_mock_hf_byte_baselines": true,
+    "synthetic_source_to_json_validator": true,
+    "source_test_count_per_python": 77,
+    "e2e_check_count_per_python": 15,
+    "ci": {
+      "url": "https://github.com/lvyufeng/Strata/actions/runs/44949639793",
+      "head_sha": "1c6f950cab8b651c2cc3f81245c5369d99fbb227",
+      "event": "push",
+      "branch": "bounded-gguf-inventory",
+      "run_attempt": 1,
+      "conclusion": "success",
+      "python_versions": ["3.11", "3.14"],
+      "test_count_per_python": 77
+    }
+  },
+  "claims": {
+    "input_provenance_verified": false,
+    "artifact_integrity_verified": false,
+    "model_completeness_verified": false,
+    "backend_compatibility_verified": false,
+    "device_ready": false,
+    "inference_ready": false,
+    "parents_accepted": false
+  },
+  "scope_exclusions": [
+    "actual model artifacts or legal provenance authentication",
+    "whole-file or tensor integrity hashing",
+    "CPU expert slicing, model loading, quantization or native kernels",
+    "FPGA layouts, RTL/operator/device/DMA parity",
+    "measured resource feasibility or residency planning",
+    "full-routing model correctness, MTP or full-wall throughput"
+  ]
+}

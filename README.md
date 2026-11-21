@@ -150,6 +150,29 @@ throughput evidence. Accepting this narrow preparation does not accept or unbloc
 its parent #8, the Strata backend or the full-decode goal, and enables no bootstrap
 execution capability.
 
+## Bounded mixed-GGUF header preparation
+
+[Inventory subtask #18](https://github.com/lvyufeng/strata-opentpu/issues/18)
+adds a default-off, local-only header export to Strata's existing quant-format
+tool. The integration [JSON schema](configs/contracts/gguf-header-inventory.schema.json)
+and [validator](scripts/check_gguf_inventory.py) check a supplied receipt without
+parsing GGUF, executing fork source or opening referenced artifacts:
+
+```sh
+python3 scripts/check_gguf_inventory.py # repository-anchored synthetic receipt
+python3 scripts/check_gguf_inventory.py --receipt local/inventory.json --strict-complete
+```
+
+Confirmed row-block layouts use checked raw-shape byte arithmetic; unknown layouts
+retain null storage, not zero, a bank fit or backend support. Header SHA excludes
+padding/payload and is not an artifact SHA or authenticated provenance. Declared
+split completeness never means model completeness; the synthetic fixture is not
+an actual mixed pack. All readiness/provenance flags remain false, even in strict
+mode. See the [inventory design](docs/design/gguf-inventory.md) and
+[separate source acceptance record](configs/contracts/strata-gguf-inventory.json).
+No model acquisition, installations, native builds, device operations or new
+bootstrap execution capability are included, and the source lock is unchanged.
+
 ## Documentation and experiments
 
 - [Architecture](docs/architecture.md) and [roadmap](docs/roadmap.md)
