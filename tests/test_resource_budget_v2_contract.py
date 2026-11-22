@@ -12,6 +12,7 @@ import ast
 import hashlib
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 import unittest
@@ -27,6 +28,15 @@ FIXTURES = ROOT / "tests/fixtures"
 CENTRAL_ISSUE = "https://github.com/lvyufeng/strata-opentpu/issues/20"
 PARENT_ISSUE = "https://github.com/lvyufeng/strata-opentpu/issues/6"
 FROZEN_V1_ISSUE = "https://github.com/lvyufeng/strata-opentpu/issues/15"
+
+# Recorded evidence for the reviewed source commit. The head SHA is the commit
+# that contains the pinned artifacts, not the later evidence-only commit.
+SOURCE_COMMIT = "5caa745f9ead24e5bb30f2911ecd736dff5c3ebc"
+CI_RUN_URL = "https://github.com/lvyufeng/strata-opentpu/actions/runs/45005116145"
+CI_RUN_ATTEMPT = 1
+REVIEW_RECORD = (
+    "https://github.com/lvyufeng/strata-opentpu/issues/20#issuecomment-7076847921"
+)
 
 # Literals, not values derived from the record under test.
 VALIDATOR_SHA256 = "e362eca8cd83feb3dc2270dbd17805300b4fc09b2752c0d424fa14b048bca232"
@@ -151,16 +161,30 @@ class ResourceBudgetV2ContractTests(unittest.TestCase):
         })
         self.assertTrue(all(value is False for value in record["claims"].values()))
         acceptance = record["acceptance"]
-        # Evidence fields stay unearned until a public run and an independent
-        # review comment exist; this pins the honest pre-evidence state.
-        self.assertEqual(acceptance["kind"], "synthetic-declaration-arithmetic")
-        self.assertIs(acceptance["independent_correctness_review"], False)
-        self.assertIs(acceptance["independent_scope_review"], False)
-        self.assertIsNone(acceptance["review_record"])
-        self.assertIsNone(acceptance["ci"]["url"])
-        self.assertIsNone(acceptance["ci"]["head_sha"])
-        self.assertIsNone(acceptance["ci"]["run_attempt"])
-        self.assertIsNone(acceptance["ci"]["conclusion"])
+        # Every evidence value is pinned to a real public run and an independent
+        # review record, not merely asserted as true.
+        self.assertEqual(
+            acceptance["kind"], "reviewed-synthetic-declaration-arithmetic")
+        self.assertIs(acceptance["independent_correctness_review"], True)
+        self.assertIs(acceptance["independent_scope_review"], True)
+        self.assertRegex(
+            acceptance["review_record"],
+            r"^https://github\.com/lvyufeng/strata-opentpu/issues/20"
+            r"#issuecomment-\d+$")
+        self.assertEqual(acceptance["review_record"], REVIEW_RECORD)
+        evidence = acceptance["ci"]
+        self.assertRegex(
+            evidence["url"],
+            r"^https://github\.com/lvyufeng/strata-opentpu/actions/runs/\d+$")
+        self.assertEqual(evidence["url"], CI_RUN_URL)
+        self.assertRegex(evidence["head_sha"], r"^[0-9a-f]{40}$")
+        self.assertEqual(evidence["head_sha"], SOURCE_COMMIT)
+        self.assertEqual(evidence["event"], "push")
+        self.assertEqual(evidence["branch"], "main")
+        self.assertIsInstance(evidence["run_attempt"], int)
+        self.assertGreaterEqual(evidence["run_attempt"], 1)
+        self.assertEqual(evidence["run_attempt"], CI_RUN_ATTEMPT)
+        self.assertEqual(evidence["conclusion"], "success")
         self.assertIs(acceptance["frozen_v1_baseline_unchanged"], True)
         self.assertIs(acceptance["schema_is_descriptive_only"], True)
         self.assertIs(record["provenance_boundaries"]["fixtures_are_synthetic"], True)

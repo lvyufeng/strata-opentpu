@@ -159,14 +159,14 @@
     "unknown_means": "null, never zero and never fit; partial expert coverage keeps every affected resource unknown"
   },
   "acceptance": {
-    "kind": "synthetic-declaration-arithmetic",
+    "kind": "reviewed-synthetic-declaration-arithmetic",
     "local_python_versions": [
       "3.11",
       "3.14"
     ],
-    "independent_correctness_review": false,
-    "independent_scope_review": false,
-    "review_record": null,
+    "independent_correctness_review": true,
+    "independent_scope_review": true,
+    "review_record": "https://github.com/lvyufeng/strata-opentpu/issues/20#issuecomment-7076847921",
     "resource_budget_v2_test_methods": 110,
     "full_suite_test_count_per_python": 454,
     "fixture_count": 6,
@@ -180,12 +180,12 @@
     "frozen_v1_baseline_unchanged": true,
     "schema_is_descriptive_only": true,
     "ci": {
-      "url": null,
-      "head_sha": null,
+      "url": "https://github.com/lvyufeng/strata-opentpu/actions/runs/45005116145",
+      "head_sha": "5caa745f9ead24e5bb30f2911ecd736dff5c3ebc",
       "event": "push",
       "branch": "main",
-      "run_attempt": null,
-      "conclusion": null,
+      "run_attempt": 1,
+      "conclusion": "success",
       "python_versions": [
         "3.11",
         "3.14"
