@@ -104,6 +104,31 @@ Default mode reports incomplete or over-capacity budgets with exit 0;
 Malformed JSON/schema or I/O errors exit 2. Reports are analytical only, not device
 or inference readiness. See the [budget design](../docs/design/resource-budget.md).
 
+## Partial-tensor expert residency budgets (v2)
+
+The [v2 checker](resource_budget_v2.py) reads exactly one positional JSON input and
+validates declared per-expert selection over the target pack's 512-expert
+sub-slice, plus the same bank/node/pinned and ordered wall-time arithmetic:
+
+```sh
+python3 scripts/resource_budget_v2.py local/budget-v2.json
+python3 scripts/resource_budget_v2.py local/budget-v2.json --strict
+```
+
+Each expert tensor record declares `layer`, `role` and a `selection` of a contiguous
+range, explicit indices or explicit unknown over the declared expert axis; resident
+bytes are charged only for the selected sub-slice. Overlap, out-of-range,
+contract-mismatch, duplicate/unknown-field and inconsistent residency declarations
+exit 2 with no report. A partial or unknown selection keeps affected totals `null`,
+appears in `unknown_inputs` and can never be a fit; `--strict` exits 1 unless
+`strict_pass` is true. The checker uses only the standard library, parses no GGUF,
+opens no model artifact and runs no external command. Reports are declaration
+arithmetic, not placement, device or inference evidence. See the
+[v2 design](../docs/design/resource-budget-v2.md) and the pinned
+[synthetic fixture matrix](../tests/test_resource_budget_v2.py) plus
+[acceptance record](../configs/contracts/strata-resource-budget-v2.json). Schema v1
+files stay frozen.
+
 ## Offline CPU evidence
 
 The [CPU evidence validator](check_cpu_evidence.py) reads the

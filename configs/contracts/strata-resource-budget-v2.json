@@ -1,0 +1,215 @@
+{
+  "schema_version": 2,
+  "contract_id": "strata-partial-expert-residency-budget-v2",
+  "evidence_scope": "declaration-only-partial-expert-selection-arithmetic",
+  "central_issue": "https://github.com/lvyufeng/strata-opentpu/issues/20",
+  "parent_issue": "https://github.com/lvyufeng/strata-opentpu/issues/6",
+  "receipt_schema": "configs/contracts/resource-budget-v2.schema.json",
+  "receipt_schema_sha256": "f45464d6ffd13330b3f6d220b25b4100d046de0701ba2672c6191fe10d0f013d",
+  "validator": "scripts/resource_budget_v2.py",
+  "validator_sha256": "e362eca8cd83feb3dc2270dbd17805300b4fc09b2752c0d424fa14b048bca232",
+  "test_module": "tests/test_resource_budget_v2.py",
+  "test_module_sha256": "24f971d601c84a9b291097bd8e951437316b2f4341bbd73d7d6207b884c43d90",
+  "bootstrap_lock_changed": false,
+  "frozen_baseline": {
+    "schema_version": 1,
+    "central_issue": "https://github.com/lvyufeng/strata-opentpu/issues/15",
+    "accepted_commit": "769d3ef",
+    "additive_changes_only": true,
+    "files": {
+      "scripts/resource_budget.py": "64e012a09a1bba6151f4b606d160af9523901442ff79868982cb79536fa57f57",
+      "configs/budgets/kintex7-qwen38-reference.json": "35006e3140392fbae6ca6435fc27fb0870ad9e29e54db1b2e44d21ef71b5515a",
+      "tests/test_resource_budget.py": "e126fa536794850820acb4c6a46b152ff03891d877e1792105d336ddfecde41b",
+      "docs/design/resource-budget.md": "83ef230c8cfd74d3312e9ad3df47ad3a863d0a572515e720a21d91ce5d41e608"
+    },
+    "note": "v2 imports the frozen v1 helpers read-only; no schema-version-1 file changes. The v1 design document stays byte-identical and v2 is documented separately in docs/design/resource-budget-v2.md, so the frozen v1 digest remains meaningful."
+  },
+  "selection_contract": {
+    "convention": "last_dimension",
+    "expert_dimension": 2,
+    "expert_count": 512,
+    "roles": {
+      "ffn_gate_exps": [
+        2560,
+        640
+      ],
+      "ffn_up_exps": [
+        2560,
+        640
+      ],
+      "ffn_down_exps": [
+        640,
+        2560
+      ]
+    },
+    "basis": "Qwen3.8-Flash-Next blk.N.ffn_{gate,up,down}_exps.weight shapes from the reviewed shard-1 header inventory; shapes only, no weights read and no placement asserted",
+    "routed_top_k": 10,
+    "expert_skip": 0,
+    "shared_expert": true
+  },
+  "limits": {
+    "max_selection_items": 4096,
+    "max_selections": 4096,
+    "max_selections_per_tensor": 64,
+    "max_tensor_records": 4096,
+    "max_total_selected_items": 1000000,
+    "max_expert_count": 1000000
+  },
+  "fixtures": {
+    "full-coverage": {
+      "path": "tests/fixtures/resource-budget-v2-full-coverage.json",
+      "bytes": 17892,
+      "sha256": "55c63d84605b8aab7ed7bb407ffc1a84d3e56b3a0a43d7699d8297eb7dedd80c",
+      "input_kind": "synthetic",
+      "purpose": "complete hot+cold coverage of a small expert axis with converted non-native resident and a complete declared decode path",
+      "expected": {
+        "exit_code": 0,
+        "strict_exit": 0,
+        "status": "fit",
+        "complete": true,
+        "fit_scope": "complete"
+      }
+    },
+    "partial-hot-subset": {
+      "path": "tests/fixtures/resource-budget-v2-partial-hot-subset.json",
+      "bytes": 15044,
+      "sha256": "288135f748f3fb20aa84c669b288677420a8556d2d661cc8dade399ea700746d",
+      "input_kind": "synthetic",
+      "purpose": "hot subset only (128 of 512 experts) over real 512-expert shapes; partial coverage must stay unknown rather than fit",
+      "expected": {
+        "exit_code": 0,
+        "strict_exit": 1,
+        "status": "unknown",
+        "complete": false,
+        "fit_scope": "partial_coverage"
+      }
+    },
+    "unknown-selection": {
+      "path": "tests/fixtures/resource-budget-v2-unknown-selection.json",
+      "bytes": 14725,
+      "sha256": "35a54ee445ac61e6930e63a53a4a48e115b1673ff9544592436ef9d74b0a0576",
+      "input_kind": "synthetic",
+      "purpose": "explicit unknown selection mode; unknown is null, never zero and never fit",
+      "expected": {
+        "exit_code": 0,
+        "strict_exit": 1,
+        "status": "unknown",
+        "complete": false,
+        "fit_scope": "partial_coverage"
+      }
+    },
+    "real-shape-split": {
+      "path": "tests/fixtures/resource-budget-v2-real-shape-split.json",
+      "bytes": 18137,
+      "sha256": "dce70ded6268cc2d5dc36c583eb6698aa3f226e043f957202fff599a2c5ff549",
+      "input_kind": "synthetic",
+      "purpose": "full 512-expert axis split hot 128 / cold 384 over real shard-1 shapes; shapes only and the split is hypothetical",
+      "expected": {
+        "exit_code": 0,
+        "strict_exit": 0,
+        "status": "fit",
+        "complete": true,
+        "fit_scope": "complete"
+      }
+    },
+    "overlap-reject": {
+      "path": "tests/fixtures/resource-budget-v2-overlap-reject.json",
+      "bytes": 12843,
+      "sha256": "4fe71bc93283a60729b28f934fa28f094e8f2b278388deea2723fa3615a88cfa",
+      "input_kind": "synthetic",
+      "purpose": "rejected overlapping expert selections",
+      "expected": {
+        "exit_code": 2,
+        "strict_exit": 2,
+        "status": null,
+        "complete": null,
+        "fit_scope": null,
+        "detail": "memory.tensors[0].selection: overlapping expert selections [2, 3] for source tensor blk.0.ffn_gate_exps.weight"
+      }
+    },
+    "range-out-of-bounds-reject": {
+      "path": "tests/fixtures/resource-budget-v2-range-out-of-bounds-reject.json",
+      "bytes": 11655,
+      "sha256": "b991f6af2310fe878eeb07c68d0aed02fa0985315e82f8f3f86657693bb0eed7",
+      "input_kind": "synthetic",
+      "purpose": "rejected contiguous range past the declared expert axis",
+      "expected": {
+        "exit_code": 2,
+        "strict_exit": 2,
+        "status": null,
+        "complete": null,
+        "fit_scope": null,
+        "detail": "memory.tensors[0].selection: contiguous range exceeds the declared expert axis of 8"
+      }
+    }
+  },
+  "provenance_boundaries": {
+    "input_kind_is_declaration": true,
+    "fixtures_are_synthetic": true,
+    "real_shape_fixture_reuses_header_shapes_only": true,
+    "hot_cold_split_is_hypothetical": true,
+    "validator_reads_one_local_json_file": true,
+    "validator_parses_gguf": false,
+    "validator_opens_model_artifacts": false,
+    "validator_measures_host_or_device": false,
+    "validator_executes_engine_or_kernels": false,
+    "report_fit_means": "declared resource arithmetic only; never measured capacity or an achieved placement",
+    "report_wall_estimate_means": "declared stage and link arithmetic only; never wall-clock measurement, never proof of the >10 tokens/s objective",
+    "selection_means": "declared item selection; never actual hot residency, routing coverage or load",
+    "unknown_means": "null, never zero and never fit; partial expert coverage keeps every affected resource unknown"
+  },
+  "acceptance": {
+    "kind": "synthetic-declaration-arithmetic",
+    "local_python_versions": [
+      "3.11",
+      "3.14"
+    ],
+    "independent_correctness_review": false,
+    "independent_scope_review": false,
+    "review_record": null,
+    "resource_budget_v2_test_methods": 110,
+    "full_suite_test_count_per_python": 454,
+    "fixture_count": 6,
+    "accepted_fixture_count": 4,
+    "rejected_fixture_count": 2,
+    "cli_exit_code_contract": [
+      0,
+      1,
+      2
+    ],
+    "frozen_v1_baseline_unchanged": true,
+    "schema_is_descriptive_only": true,
+    "ci": {
+      "url": null,
+      "head_sha": null,
+      "event": "push",
+      "branch": "main",
+      "run_attempt": null,
+      "conclusion": null,
+      "python_versions": [
+        "3.11",
+        "3.14"
+      ],
+      "test_count_per_python": 454
+    }
+  },
+  "claims": {
+    "input_provenance_verified": false,
+    "artifact_integrity_verified": false,
+    "model_completeness_verified": false,
+    "backend_compatibility_verified": false,
+    "device_ready": false,
+    "inference_ready": false,
+    "parents_accepted": false
+  },
+  "scope_exclusions": [
+    "No real hot/cold expert split, Strata placement plan or cache-state evidence is accepted here; the 128/384 split is hypothetical.",
+    "No packed tensor, GGUF file, artifact hash, expert mapping, router logit or measurement is read or authenticated by the validator.",
+    "schema-version-1 files stay byte-identical, including the v1 design document; v2 adds a separate schema, validator, fixtures, acceptance record and design document.",
+    "A fit or unknown result is declaration arithmetic, not device capacity, bandwidth, wall time or the >10 tokens/s objective.",
+    "The real input still needs an actual hot/cold split plus independently reviewed Strata placement and measured target evidence under a separately authorized operation.",
+    "This record does not close the acceptance of issue #6 or issue #20; it is source-only declaration evidence and cannot move the measured parent gate."
+  ],
+  "design_document": "docs/design/resource-budget-v2.md",
+  "design_document_sha256": "8235546c48bd25d7c143d7776343dae97fed912447379e4e8ca5658ac81e872d"
+}

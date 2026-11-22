@@ -123,9 +123,30 @@ numerical and repeated full-branch wall-time evidence. They neither run Strata n
 provide a second CPU engine, obtain model tensors or certify submitted data as true.
 Synthetic tests and accepted evidence structure are not measured CPU performance.
 
+The target pack stores 512 experts as a sub-slice of one whole packed tensor, which
+the frozen [v1 checker](scripts/resource_budget.py) cannot charge as hot/cold
+residency. The separate
+[partial-tensor residency subtask #20](https://github.com/lvyufeng/strata-opentpu/issues/20)
+therefore adds a version-2 [descriptive schema](configs/contracts/resource-budget-v2.schema.json),
+a stdlib-only [checker](scripts/resource_budget_v2.py), six synthetic fixtures and an
+[acceptance record](configs/contracts/strata-resource-budget-v2.json):
+
+```sh
+python3 scripts/resource_budget_v2.py local/budget-v2.json --strict
+```
+
+Selection is declared per tensor with an explicit expert axis (contiguous range,
+explicit indices or explicit unknown), and resident bytes are charged only for the
+selected sub-slice. Overlap and out-of-range selections are rejected; partial or
+unknown coverage stays unknown, never a fit. The real-shape fixture reuses reviewed
+header **shapes** only and its 128/384 hot/cold split is hypothetical, not an actual
+Strata placement, cache state or measurement. Schema v1 and its checker are
+untouched. See the [v2 design](docs/design/resource-budget-v2.md).
+
 These independently scoped preparations are tracked in
-[resource-budget subtask #15](https://github.com/lvyufeng/strata-opentpu/issues/15)
-and [CPU-evidence subtask #16](https://github.com/lvyufeng/strata-opentpu/issues/16).
+[resource-budget subtask #15](https://github.com/lvyufeng/strata-opentpu/issues/15),
+[CPU-evidence subtask #16](https://github.com/lvyufeng/strata-opentpu/issues/16) and
+[partial-tensor subtask #20](https://github.com/lvyufeng/strata-opentpu/issues/20).
 Their parent tasks still require actual mixed-tensor metadata, authorized resources
 and reproducible measurements. No bootstrap execution capability is enabled.
 See the [script reference](scripts/README.md) for offline entry points and limits.

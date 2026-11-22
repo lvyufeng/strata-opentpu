@@ -82,8 +82,13 @@ artifact-integrity, legal-provenance, backend, device or throughput fact. The
 next input contract is tracked as [partial-tensor residency child
 #20](https://github.com/lvyufeng/strata-opentpu/issues/20): expert tensors are
 whole packed tensors whose expert axis is a sub-slice, so a whole-tensor budget
-entry cannot express hot-expert residency. #20 is recorded backlog, not started,
-and cannot by itself unblock the measured parent.
+entry cannot express hot-expert residency. That child now provides a version-2
+descriptive schema, a standard-library checker, six pinned synthetic fixtures and an
+[acceptance record](../configs/contracts/strata-resource-budget-v2.json) without
+changing any v1 file; partial or unknown selection can never be reported as a fit.
+It remains declaration-only and cannot by itself unblock the measured parent: the
+real input still needs an actual hot/cold split plus independently reviewed Strata
+placement and measured target evidence.
 
 ## Project fields and states
 

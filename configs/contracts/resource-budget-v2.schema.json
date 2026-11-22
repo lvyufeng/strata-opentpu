@@ -1,0 +1,1640 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lvyufeng/strata-opentpu/blob/main/configs/contracts/resource-budget-v2.schema.json",
+  "title": "Strata/openTPU schema-v2 partial expert-axis resource budget input",
+  "description": "Structural description of the schema_version 2 budget input envelope accepted by scripts/resource_budget_v2.py. This file is descriptive metadata: the stdlib-only validator in scripts/resource_budget_v2.py is authoritative for nullability, cross-field arithmetic, coverage completeness and evidence semantics. No schema validator is executed in CI.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "input_kind",
+    "selection_contract",
+    "model",
+    "memory",
+    "wall"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_kind": {
+      "enum": [
+        "reference",
+        "synthetic",
+        "declared"
+      ]
+    },
+    "selection_contract": {
+      "$ref": "#/$defs/selectionContract"
+    },
+    "model": {
+      "$ref": "#/$defs/model"
+    },
+    "memory": {
+      "$ref": "#/$defs/memory"
+    },
+    "wall": {
+      "$ref": "#/$defs/wall"
+    }
+  },
+  "$defs": {
+    "u64": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615
+    },
+    "positiveU64": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 18446744073709551615
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "detail"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "synthetic",
+            "analytical",
+            "measured",
+            "source"
+          ]
+        },
+        "detail": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "coverageEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "complete",
+            "absent",
+            "unknown"
+          ]
+        },
+        "reason": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "selectionContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "convention",
+        "expert_dimension",
+        "expert_count",
+        "roles"
+      ],
+      "properties": {
+        "convention": {
+          "const": "last_dimension"
+        },
+        "expert_dimension": {
+          "$ref": "#/$defs/positiveU64"
+        },
+        "expert_count": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/positiveU64"
+            },
+            {
+              "maximum": 1000000
+            }
+          ]
+        },
+        "roles": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ffn_gate_exps",
+            "ffn_up_exps",
+            "ffn_down_exps"
+          ],
+          "properties": {
+            "ffn_gate_exps": {
+              "$ref": "#/$defs/roleShape"
+            },
+            "ffn_up_exps": {
+              "$ref": "#/$defs/roleShape"
+            },
+            "ffn_down_exps": {
+              "$ref": "#/$defs/roleShape"
+            }
+          }
+        }
+      }
+    },
+    "roleShape": {
+      "description": "Exactly expert_dimension positive sizes precede the expert axis.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/positiveU64"
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "layers",
+        "context_tokens",
+        "sessions",
+        "routed_top_k",
+        "expert_skip",
+        "shared_expert"
+      ],
+      "properties": {
+        "layers": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/positiveU64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "context_tokens": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/positiveU64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sessions": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/positiveU64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "routed_top_k": {
+          "const": 10
+        },
+        "expert_skip": {
+          "const": 0
+        },
+        "shared_expert": {
+          "const": true
+        }
+      }
+    },
+    "bank": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "capacity_bytes",
+        "reserve_bytes",
+        "fragmentation_bytes"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/text"
+        },
+        "capacity_bytes": {
+          "$ref": "#/$defs/positiveU64"
+        },
+        "reserve_bytes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fragmentation_bytes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "numaNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "capacity_bytes",
+        "reserve_bytes",
+        "fragmentation_bytes",
+        "pinned_quota_bytes"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/text"
+        },
+        "capacity_bytes": {
+          "$ref": "#/$defs/positiveU64"
+        },
+        "reserve_bytes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fragmentation_bytes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pinned_quota_bytes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capacity_bytes",
+        "banks"
+      ],
+      "properties": {
+        "capacity_bytes": {
+          "$ref": "#/$defs/positiveU64"
+        },
+        "banks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/bank"
+          }
+        }
+      }
+    },
+    "host": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capacity_bytes",
+        "reserve_bytes",
+        "fragmentation_bytes",
+        "pinned_quota_bytes",
+        "numa_nodes"
+      ],
+      "properties": {
+        "capacity_bytes": {
+          "$ref": "#/$defs/positiveU64"
+        },
+        "reserve_bytes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fragmentation_bytes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pinned_quota_bytes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "numa_nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/numaNode"
+          }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "artifact",
+        "revision",
+        "sha256",
+        "tensor"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "tensor_metadata",
+            "synthetic"
+          ]
+        },
+        "artifact": {
+          "$ref": "#/$defs/text"
+        },
+        "revision": {
+          "$ref": "#/$defs/text"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "tensor": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "packed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dtype",
+        "layout",
+        "shape",
+        "block_values",
+        "block_bytes",
+        "row_stride_bytes",
+        "data_bytes",
+        "external_scale_bytes"
+      ],
+      "properties": {
+        "dtype": {
+          "$ref": "#/$defs/text"
+        },
+        "layout": {
+          "$ref": "#/$defs/text"
+        },
+        "shape": {
+          "description": "Rank is selection_contract.expert_dimension + 1; the last axis is the expert axis and must equal expert_count; the prefix must equal the declared role shape.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 65535,
+          "items": {
+            "$ref": "#/$defs/positiveU64"
+          }
+        },
+        "block_values": {
+          "$ref": "#/$defs/positiveU64"
+        },
+        "block_bytes": {
+          "$ref": "#/$defs/positiveU64"
+        },
+        "row_stride_bytes": {
+          "$ref": "#/$defs/positiveU64"
+        },
+        "data_bytes": {
+          "$ref": "#/$defs/u64"
+        },
+        "external_scale_bytes": {
+          "const": 0
+        }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "mode",
+        "dimension",
+        "axis_size"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/text"
+        },
+        "mode": {
+          "enum": [
+            "range",
+            "indices",
+            "unknown"
+          ]
+        },
+        "dimension": {
+          "$ref": "#/$defs/positiveU64"
+        },
+        "axis_size": {
+          "$ref": "#/$defs/positiveU64"
+        },
+        "start": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "count": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/positiveU64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "indices": {
+          "oneOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 4096,
+              "items": {
+                "$ref": "#/$defs/u64"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "const": "range"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "start",
+              "count"
+            ],
+            "not": {
+              "required": [
+                "indices"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "const": "indices"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "indices",
+              "count"
+            ],
+            "not": {
+              "required": [
+                "start"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "reason"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "start"
+                  ]
+                },
+                {
+                  "required": [
+                    "count"
+                  ]
+                },
+                {
+                  "required": [
+                    "indices"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "residentNative": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "dtype",
+        "layout",
+        "data_bytes",
+        "scale_bytes",
+        "overhead_bytes",
+        "source_retained"
+      ],
+      "properties": {
+        "status": {
+          "const": "native"
+        },
+        "dtype": {
+          "$ref": "#/$defs/text"
+        },
+        "layout": {
+          "$ref": "#/$defs/text"
+        },
+        "data_bytes": {
+          "$ref": "#/$defs/u64"
+        },
+        "scale_bytes": {
+          "const": 0
+        },
+        "overhead_bytes": {
+          "$ref": "#/$defs/u64"
+        },
+        "source_retained": {
+          "const": false
+        }
+      }
+    },
+    "residentConverted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "dtype",
+        "layout",
+        "data_bytes",
+        "scale_bytes",
+        "overhead_bytes",
+        "source_retained",
+        "evidence"
+      ],
+      "properties": {
+        "status": {
+          "const": "converted"
+        },
+        "dtype": {
+          "$ref": "#/$defs/text"
+        },
+        "layout": {
+          "$ref": "#/$defs/text"
+        },
+        "data_bytes": {
+          "$ref": "#/$defs/u64"
+        },
+        "scale_bytes": {
+          "$ref": "#/$defs/u64"
+        },
+        "overhead_bytes": {
+          "$ref": "#/$defs/u64"
+        },
+        "source_retained": {
+          "type": "boolean"
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "residentUnknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "const": "unknown"
+        },
+        "source_retained": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dtype": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "layout": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "data_bytes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scale_bytes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "overhead_bytes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/evidence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "resident": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/residentNative"
+        },
+        {
+          "$ref": "#/$defs/residentConverted"
+        },
+        {
+          "$ref": "#/$defs/residentUnknown"
+        }
+      ]
+    },
+    "tensor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source",
+        "layer",
+        "role",
+        "packed",
+        "selection",
+        "resident"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/text"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "layer": {
+          "$ref": "#/$defs/u64"
+        },
+        "role": {
+          "enum": [
+            "ffn_gate_exps",
+            "ffn_up_exps",
+            "ffn_down_exps"
+          ]
+        },
+        "packed": {
+          "$ref": "#/$defs/packed"
+        },
+        "selection": {
+          "$ref": "#/$defs/selection"
+        },
+        "resident": {
+          "$ref": "#/$defs/resident"
+        }
+      }
+    },
+    "placement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource",
+        "bytes",
+        "alignment_bytes"
+      ],
+      "properties": {
+        "resource": {
+          "$ref": "#/$defs/text"
+        },
+        "bytes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "alignment_bytes": {
+          "description": "Power of two.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/positiveU64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "allocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "category",
+        "bytes",
+        "pinned",
+        "tensor_ids",
+        "placements"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/text"
+        },
+        "category": {
+          "enum": [
+            "fixed_weights",
+            "hot_experts",
+            "cold_experts",
+            "shared_experts",
+            "ple_ngram_weights",
+            "draft_weights",
+            "fixed_buffers",
+            "kv",
+            "qsa_indexer",
+            "deltanet_recurrent",
+            "deltanet_conv",
+            "ple_ngram_state",
+            "residual_draft",
+            "sampler_history",
+            "cache_metadata",
+            "workspace",
+            "dma_staging",
+            "conversion_workspace"
+          ]
+        },
+        "bytes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pinned": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tensor_ids": {
+          "description": "References must be declared memory.tensors entries; required for weight allocations and reserved for them.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "tensor_storage": {
+          "enum": [
+            "resident",
+            "packed_source",
+            null
+          ]
+        },
+        "placements": {
+          "$ref": "#/$defs/placements"
+        }
+      }
+    },
+    "placements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/placement"
+      }
+    },
+    "memoryCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixed_weights",
+        "hot_experts",
+        "cold_experts",
+        "shared_experts",
+        "ple_ngram_weights",
+        "draft_weights",
+        "fixed_buffers",
+        "kv",
+        "qsa_indexer",
+        "deltanet_recurrent",
+        "deltanet_conv",
+        "ple_ngram_state",
+        "residual_draft",
+        "sampler_history",
+        "cache_metadata",
+        "workspace",
+        "dma_staging",
+        "conversion_workspace"
+      ],
+      "properties": {
+        "fixed_weights": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "hot_experts": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "cold_experts": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "shared_experts": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "ple_ngram_weights": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "draft_weights": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "fixed_buffers": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "kv": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "qsa_indexer": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "deltanet_recurrent": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "deltanet_conv": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "ple_ngram_state": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "residual_draft": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "sampler_history": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "cache_metadata": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "workspace": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "dma_staging": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "conversion_workspace": {
+          "$ref": "#/$defs/coverageEntry"
+        }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coverage",
+        "device",
+        "host",
+        "tensors",
+        "allocations"
+      ],
+      "properties": {
+        "coverage": {
+          "$ref": "#/$defs/memoryCoverage"
+        },
+        "device": {
+          "$ref": "#/$defs/device"
+        },
+        "host": {
+          "$ref": "#/$defs/host"
+        },
+        "tensors": {
+          "description": "At most 4096 records; each tensor needs at least one selection, and one packed source tensor may be split across resident subsets.",
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/$defs/tensor"
+          }
+        },
+        "allocations": {
+          "description": "Conservatively simultaneous allocations; every weight allocation needs tensor references and placements on an explicitly declared bank or NUMA node.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/allocation"
+          }
+        }
+      }
+    },
+    "numa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pcie_local_node",
+        "transfer_worker_node",
+        "cpu_worker_nodes",
+        "page_placement_declared"
+      ],
+      "properties": {
+        "pcie_local_node": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "transfer_worker_node": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cpu_worker_nodes": {
+          "description": "Distinct declared NUMA node ids; ties are rejected, never guessed.",
+          "oneOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/text"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "page_placement_declared": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "linkEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generation",
+        "lanes"
+      ],
+      "properties": {
+        "generation": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/positiveU64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lanes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/positiveU64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "linkDirection": {
+      "description": "Measured payload rate only; endpoint capability is informational and never substituted for a rate.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "payload_bytes_per_second",
+        "submission_milliseconds"
+      ],
+      "properties": {
+        "payload_bytes_per_second": {
+          "oneOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "submission_milliseconds": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "endpoint_capability",
+        "negotiated",
+        "h2d",
+        "d2h"
+      ],
+      "properties": {
+        "endpoint_capability": {
+          "$ref": "#/$defs/linkEndpoint"
+        },
+        "negotiated": {
+          "$ref": "#/$defs/linkEndpoint"
+        },
+        "h2d": {
+          "$ref": "#/$defs/linkDirection"
+        },
+        "d2h": {
+          "$ref": "#/$defs/linkDirection"
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "covers",
+        "kind"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/text"
+        },
+        "depends_on": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/text"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "covers": {
+          "description": "Coverage categories this operation accounts for; every complete category needs a covering operation and the category must be one the scope may map.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "kind": {
+          "enum": [
+            "cpu",
+            "fpga",
+            "host",
+            "sync",
+            "merge",
+            "h2d",
+            "d2h"
+          ]
+        },
+        "milliseconds": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bytes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "submissions": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "stageCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixed",
+        "shared_expert",
+        "routing",
+        "activation",
+        "state",
+        "cold_expert",
+        "hot_expert",
+        "transfers",
+        "cache_misses",
+        "numa_traffic",
+        "sync_merge"
+      ],
+      "properties": {
+        "fixed": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "shared_expert": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "routing": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "activation": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "state": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "cold_expert": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "hot_expert": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "transfers": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "cache_misses": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "numa_traffic": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "sync_merge": {
+          "$ref": "#/$defs/coverageEntry"
+        }
+      }
+    },
+    "nonExpertCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "embedding",
+        "head",
+        "sampling",
+        "state",
+        "numa_traffic",
+        "fallback"
+      ],
+      "properties": {
+        "embedding": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "head": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "sampling": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "state": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "numa_traffic": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "fallback": {
+          "$ref": "#/$defs/coverageEntry"
+        }
+      }
+    },
+    "mtpCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "draft",
+        "verification",
+        "commit_rollback",
+        "state",
+        "transfers",
+        "numa_traffic",
+        "sync_merge"
+      ],
+      "properties": {
+        "draft": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "verification": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "commit_rollback": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "state": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "transfers": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "numa_traffic": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "sync_merge": {
+          "$ref": "#/$defs/coverageEntry"
+        }
+      }
+    },
+    "overlap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "serial",
+            "independent_experts"
+          ]
+        },
+        "supported": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/evidence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "const": "independent_experts"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "supported",
+              "evidence"
+            ]
+          }
+        }
+      ],
+      "description": "Independent expert branches must declare supported and evidence; missing keys are reported as unknown inputs, never as a measured speedup."
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "scope",
+        "coverage",
+        "repeat",
+        "overlap",
+        "before",
+        "cpu",
+        "fpga",
+        "after"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/text"
+        },
+        "scope": {
+          "enum": [
+            "layer",
+            "non_expert",
+            "mtp"
+          ]
+        },
+        "coverage": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/stageCoverage"
+            },
+            {
+              "$ref": "#/$defs/nonExpertCoverage"
+            },
+            {
+              "$ref": "#/$defs/mtpCoverage"
+            }
+          ]
+        },
+        "repeat": {
+          "$ref": "#/$defs/positiveU64"
+        },
+        "overlap": {
+          "$ref": "#/$defs/overlap"
+        },
+        "before": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/operation"
+          }
+        },
+        "cpu": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/operation"
+          }
+        },
+        "fpga": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/operation"
+          }
+        },
+        "after": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/operation"
+          }
+        }
+      }
+    },
+    "wallCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "non_expert",
+        "cache_misses",
+        "transfers",
+        "numa_traffic",
+        "sync_merge",
+        "sampling",
+        "fallback",
+        "mtp_verify_commit"
+      ],
+      "properties": {
+        "non_expert": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "cache_misses": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "transfers": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "numa_traffic": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "sync_merge": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "sampling": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "fallback": {
+          "$ref": "#/$defs/coverageEntry"
+        },
+        "mtp_verify_commit": {
+          "$ref": "#/$defs/coverageEntry"
+        }
+      }
+    },
+    "acceptedAccounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "declared",
+            "unknown"
+          ]
+        },
+        "evidence": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/evidence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "wall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "coverage",
+        "numa",
+        "link",
+        "stages",
+        "accepted_tokens",
+        "count_basis"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "mtp_off",
+            "mtp_on"
+          ]
+        },
+        "coverage": {
+          "$ref": "#/$defs/wallCoverage"
+        },
+        "numa": {
+          "$ref": "#/$defs/numa"
+        },
+        "link": {
+          "$ref": "#/$defs/link"
+        },
+        "stages": {
+          "description": "A complete decode path: layer stages repeating model.layers times plus one non-expert/head/sampling stage, and an MTP stage only when mode is mtp_on.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stage"
+          }
+        },
+        "accepted_tokens": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/u64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "count_basis": {
+          "const": "accepted_output_tokens"
+        },
+        "accepted_accounting": {
+          "$ref": "#/$defs/acceptedAccounting"
+        }
+      }
+    }
+  }
+}

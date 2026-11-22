@@ -1,0 +1,447 @@
+{
+  "schema_version": 2,
+  "id": "resource-budget-v2-range-out-of-bounds-reject",
+  "input_kind": "synthetic",
+  "selection_contract": {
+    "convention": "last_dimension",
+    "expert_dimension": 2,
+    "expert_count": 8,
+    "roles": {
+      "ffn_gate_exps": [
+        4,
+        3
+      ],
+      "ffn_up_exps": [
+        5,
+        2
+      ],
+      "ffn_down_exps": [
+        3,
+        4
+      ]
+    }
+  },
+  "model": {
+    "layers": 1,
+    "context_tokens": 4096,
+    "sessions": 1,
+    "routed_top_k": 10,
+    "expert_skip": 0,
+    "shared_expert": true
+  },
+  "memory": {
+    "coverage": {
+      "fixed_weights": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "hot_experts": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "cold_experts": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "shared_experts": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "ple_ngram_weights": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "draft_weights": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "fixed_buffers": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "kv": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "qsa_indexer": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "deltanet_recurrent": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "deltanet_conv": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "ple_ngram_state": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "residual_draft": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "sampler_history": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "cache_metadata": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "workspace": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "dma_staging": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      },
+      "conversion_workspace": {
+        "status": "absent",
+        "reason": "not modelled in this synthetic single-layer window"
+      }
+    },
+    "device": {
+      "capacity_bytes": 1024,
+      "banks": [
+        {
+          "id": "ddr0",
+          "capacity_bytes": 1024,
+          "reserve_bytes": 0,
+          "fragmentation_bytes": 0
+        }
+      ]
+    },
+    "host": {
+      "capacity_bytes": 8192,
+      "reserve_bytes": 0,
+      "fragmentation_bytes": 0,
+      "pinned_quota_bytes": 0,
+      "numa_nodes": [
+        {
+          "id": "node0",
+          "capacity_bytes": 8192,
+          "reserve_bytes": 0,
+          "fragmentation_bytes": 0,
+          "pinned_quota_bytes": 0
+        }
+      ]
+    },
+    "tensors": [
+      {
+        "id": "oob-gate-a",
+        "source": {
+          "kind": "synthetic",
+          "artifact": "qwen38-expert-slice.synthetic",
+          "revision": "fixture-v2",
+          "sha256": "beb36ebc0970b66de66fae30958dabf40e4a14161bacab5255fb7beff7861385",
+          "tensor": "blk.0.ffn_gate_exps.weight"
+        },
+        "layer": 0,
+        "role": "ffn_gate_exps",
+        "packed": {
+          "dtype": "synthetic-IQ2_XS-block",
+          "layout": "row-blocked",
+          "shape": [
+            4,
+            3,
+            8
+          ],
+          "block_values": 4,
+          "block_bytes": 1,
+          "row_stride_bytes": 4,
+          "data_bytes": 96,
+          "external_scale_bytes": 0
+        },
+        "selection": {
+          "id": "oob-range",
+          "mode": "range",
+          "dimension": 2,
+          "axis_size": 8,
+          "start": 6,
+          "count": 4
+        },
+        "resident": {
+          "status": "native",
+          "dtype": "synthetic-IQ2_XS-block",
+          "layout": "row-blocked",
+          "data_bytes": 48,
+          "scale_bytes": 0,
+          "overhead_bytes": 0,
+          "source_retained": false
+        }
+      }
+    ],
+    "allocations": []
+  },
+  "wall": {
+    "mode": "mtp_off",
+    "coverage": {
+      "non_expert": {
+        "status": "complete",
+        "reason": "explicit non-expert stage"
+      },
+      "cache_misses": {
+        "status": "absent",
+        "reason": "all selected experts resident in this window"
+      },
+      "transfers": {
+        "status": "complete",
+        "reason": "explicit h2d payload and submission costs"
+      },
+      "numa_traffic": {
+        "status": "absent",
+        "reason": "single declared NUMA node"
+      },
+      "sync_merge": {
+        "status": "complete",
+        "reason": "explicit serial merge operation"
+      },
+      "sampling": {
+        "status": "complete",
+        "reason": "explicit sampling operation"
+      },
+      "fallback": {
+        "status": "absent",
+        "reason": "expert-skip=0 full top10, no fallback path"
+      },
+      "mtp_verify_commit": {
+        "status": "absent",
+        "reason": "MTP-off experiment"
+      }
+    },
+    "numa": {
+      "pcie_local_node": "node0",
+      "transfer_worker_node": "node0",
+      "cpu_worker_nodes": [
+        "node0"
+      ],
+      "page_placement_declared": true
+    },
+    "link": {
+      "endpoint_capability": {
+        "generation": 3,
+        "lanes": 16
+      },
+      "negotiated": {
+        "generation": 3,
+        "lanes": 16
+      },
+      "h2d": {
+        "payload_bytes_per_second": 6000000000,
+        "submission_milliseconds": 0.005
+      },
+      "d2h": {
+        "payload_bytes_per_second": 6000000000,
+        "submission_milliseconds": 0.005
+      }
+    },
+    "stages": [
+      {
+        "id": "decode-layer",
+        "scope": "layer",
+        "coverage": {
+          "fixed": {
+            "status": "complete",
+            "reason": "dense fixed weights read"
+          },
+          "shared_expert": {
+            "status": "complete",
+            "reason": "shared expert retained in both branches"
+          },
+          "routing": {
+            "status": "complete",
+            "reason": "router top10 declared"
+          },
+          "activation": {
+            "status": "complete",
+            "reason": "activation math declared"
+          },
+          "state": {
+            "status": "complete",
+            "reason": "layer state declared"
+          },
+          "cold_expert": {
+            "status": "complete",
+            "reason": "CPU cold-expert branch declared"
+          },
+          "hot_expert": {
+            "status": "complete",
+            "reason": "FPGA hot-expert branch declared"
+          },
+          "transfers": {
+            "status": "complete",
+            "reason": "explicit host-to-device payload and submissions"
+          },
+          "cache_misses": {
+            "status": "absent",
+            "reason": "every selected expert is covered by a resident allocation in this window"
+          },
+          "numa_traffic": {
+            "status": "absent",
+            "reason": "single declared NUMA node"
+          },
+          "sync_merge": {
+            "status": "complete",
+            "reason": "serial synchronization and merge declared"
+          }
+        },
+        "repeat": 1,
+        "overlap": {
+          "mode": "independent_experts",
+          "supported": true,
+          "evidence": {
+            "kind": "analytical",
+            "detail": "CPU cold and FPGA hot expert branches are declared independent; synchronization is serialized in before/after work"
+          }
+        },
+        "before": [
+          {
+            "id": "layer-fixed",
+            "depends_on": [],
+            "covers": [
+              "fixed",
+              "shared_expert",
+              "routing",
+              "activation",
+              "state"
+            ],
+            "kind": "host",
+            "milliseconds": 2.0
+          },
+          {
+            "id": "layer-h2d",
+            "depends_on": [
+              "layer-fixed"
+            ],
+            "covers": [
+              "transfers"
+            ],
+            "kind": "h2d",
+            "bytes": 48,
+            "submissions": 128
+          }
+        ],
+        "cpu": [
+          {
+            "id": "cold-expert-cpu",
+            "depends_on": [],
+            "covers": [
+              "cold_expert"
+            ],
+            "kind": "cpu",
+            "milliseconds": 4.0
+          }
+        ],
+        "fpga": [
+          {
+            "id": "hot-expert-fpga",
+            "depends_on": [],
+            "covers": [
+              "hot_expert"
+            ],
+            "kind": "fpga",
+            "milliseconds": 3.0
+          }
+        ],
+        "after": [
+          {
+            "id": "layer-sync-merge",
+            "depends_on": [],
+            "covers": [
+              "sync_merge"
+            ],
+            "kind": "merge",
+            "milliseconds": 1.0
+          }
+        ]
+      },
+      {
+        "id": "decode-non-expert",
+        "scope": "non_expert",
+        "coverage": {
+          "embedding": {
+            "status": "complete",
+            "reason": "token embedding lookup"
+          },
+          "head": {
+            "status": "complete",
+            "reason": "output head declared"
+          },
+          "sampling": {
+            "status": "complete",
+            "reason": "sampling declared"
+          },
+          "state": {
+            "status": "complete",
+            "reason": "sampler state declared"
+          },
+          "numa_traffic": {
+            "status": "absent",
+            "reason": "single declared NUMA node"
+          },
+          "fallback": {
+            "status": "absent",
+            "reason": "full top10 with expert-skip=0 assumes no fallback path"
+          }
+        },
+        "repeat": 1,
+        "overlap": {
+          "mode": "serial"
+        },
+        "before": [
+          {
+            "id": "embedding",
+            "depends_on": [],
+            "covers": [
+              "embedding"
+            ],
+            "kind": "host",
+            "milliseconds": 0.2
+          },
+          {
+            "id": "head",
+            "depends_on": [
+              "embedding"
+            ],
+            "covers": [
+              "head"
+            ],
+            "kind": "host",
+            "milliseconds": 0.5
+          },
+          {
+            "id": "sampling",
+            "depends_on": [
+              "head"
+            ],
+            "covers": [
+              "sampling"
+            ],
+            "kind": "host",
+            "milliseconds": 0.1
+          },
+          {
+            "id": "non-expert-state",
+            "depends_on": [
+              "sampling"
+            ],
+            "covers": [
+              "state"
+            ],
+            "kind": "host",
+            "milliseconds": 0.1
+          }
+        ],
+        "cpu": [],
+        "fpga": [],
+        "after": []
+      }
+    ],
+    "accepted_tokens": 32,
+    "count_basis": "accepted_output_tokens"
+  }
+}
