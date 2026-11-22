@@ -66,6 +66,25 @@ fork development branch with narrow cached-Python stdlib CI; no Strata PR is
 created because its ordinary PR workflows install/build beyond this scope.
 The bootstrap source lock and disabled execution capabilities remain unchanged.
 
+A [second child of the same parent](https://github.com/lvyufeng/strata-opentpu/issues/19)
+versions that receipt profile after a bounded header-only probe of the actual
+target shard pair. v2 raises only the two metadata-array ceilings and confirms
+six additional measured block types; the v1 schema, fixture and acceptance record
+stay frozen. Both records are integration-owned source/synthetic acceptance. A
+separate explicitly authorized header-only pass over the two downloaded target
+shards was also run once with the final reviewed tools; that receipt is retained
+only in the ignored local workspace, is not part of the v2 acceptance record
+(whose `real_header_only_run` stays `false`), and is local, unverified evidence.
+That receipt reports a complete declared split and no unknown storage among the
+declared tensors — the profile's still-unconfirmed type ids 19, 39, 40 and 41
+simply do not occur in this pack — and it still proves no payload,
+artifact-integrity, legal-provenance, backend, device or throughput fact. The
+next input contract is tracked as [partial-tensor residency child
+#20](https://github.com/lvyufeng/strata-opentpu/issues/20): expert tensors are
+whole packed tensors whose expert axis is a sub-slice, so a whole-tensor budget
+entry cannot express hot-expert residency. #20 is recorded backlog, not started,
+and cannot by itself unblock the measured parent.
+
 ## Project fields and states
 
 | Field | Meaning |

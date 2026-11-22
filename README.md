@@ -154,22 +154,31 @@ execution capability.
 
 [Inventory subtask #18](https://github.com/lvyufeng/strata-opentpu/issues/18)
 adds a default-off, local-only header export to Strata's existing quant-format
-tool. The integration [JSON schema](configs/contracts/gguf-header-inventory.schema.json)
-and [validator](scripts/check_gguf_inventory.py) check a supplied receipt without
+tool. [Subtask #19](https://github.com/lvyufeng/strata-opentpu/issues/19) revises
+the receipt profile after a bounded header-only probe of the actual target shard
+pair: schema v2 raises only the two metadata-array ceilings and confirms six
+additional measured block types. The integration
+[v1](configs/contracts/gguf-header-inventory.schema.json) and
+[v2](configs/contracts/gguf-header-inventory-v2.schema.json) JSON schemas and
+[validator](scripts/check_gguf_inventory.py) check a supplied receipt without
 parsing GGUF, executing fork source or opening referenced artifacts:
 
 ```sh
-python3 scripts/check_gguf_inventory.py # repository-anchored synthetic receipt
+python3 scripts/check_gguf_inventory.py # repository-anchored synthetic v1 receipt
 python3 scripts/check_gguf_inventory.py --receipt local/inventory.json --strict-complete
+python3 scripts/check_gguf_inventory.py --receipt-v2 local/inventory-v2.json --strict-complete
 ```
 
-Confirmed row-block layouts use checked raw-shape byte arithmetic; unknown layouts
+`--receipt` validates a receipt against the version it declares; `--receipt-v2`
+additionally pins version 2 and refuses a v1 receipt. Confirmed row-block layouts
+use checked raw-shape byte arithmetic; unknown layouts
 retain null storage, not zero, a bank fit or backend support. Header SHA excludes
 padding/payload and is not an artifact SHA or authenticated provenance. Declared
 split completeness never means model completeness; the synthetic fixture is not
 an actual mixed pack. All readiness/provenance flags remain false, even in strict
-mode. See the [inventory design](docs/design/gguf-inventory.md) and
-[separate source acceptance record](configs/contracts/strata-gguf-inventory.json).
+mode. See the [inventory design](docs/design/gguf-inventory.md) and the
+[separate v1](configs/contracts/strata-gguf-inventory.json) /
+[v2](configs/contracts/strata-gguf-inventory-v2.json) source acceptance records.
 No model acquisition, installations, native builds, device operations or new
 bootstrap execution capability are included, and the source lock is unchanged.
 

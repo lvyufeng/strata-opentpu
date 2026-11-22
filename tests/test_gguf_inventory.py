@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
+import hashlib
 import io
 import json
 import os
@@ -26,6 +27,15 @@ FIXTURE = ROOT / "tests/fixtures/gguf-header-inventory.synthetic.json"
 SCHEMA = ROOT / "configs/contracts/gguf-header-inventory.schema.json"
 FALSE_CLAIMS = ("input_provenance_verified", "artifact_integrity_verified", "model_completeness_verified",
                 "backend_compatibility_verified", "device_ready", "inference_ready")
+# The accepted #18 validator summary surface over the anchored v1 fixture. The
+# v2 profile reports its declared version; v1 stays byte-identical to this.
+V1_REPORT_KEYS = frozenset((
+    "artifact_integrity_verified", "backend_compatibility_verified", "device_ready",
+    "header_declarations_complete", "header_only", "inference_ready", "input_kind",
+    "input_provenance_verified", "kind", "model_completeness_verified", "note",
+    "source_identity_verified", "split", "split_status", "strict_complete_requested",
+    "totals", "valid"))
+V1_REPORT_SHA256 = "e64681d1137df5721ceda0b544294c6ce84c0ea35a9963ae277f8c7f27c4a238"
 # Independently stated subset, not generated from the checker's implementation.
 GEOMETRY = {0: ("F32", 1, 4), 1: ("F16", 1, 2), 8: ("Q8_0", 32, 34),
             17: ("IQ2_XS", 256, 74), 21: ("IQ3_S", 256, 110), 24: ("I8", 1, 1),
@@ -33,8 +43,21 @@ GEOMETRY = {0: ("F32", 1, 4), 1: ("F16", 1, 2), 8: ("Q8_0", 32, 34),
             28: ("F64", 1, 8), 30: ("BF16", 1, 2), 42: ("Q2_0", 64, 18)}
 
 
+FIXTURE_V2 = ROOT / "tests/fixtures/gguf-header-inventory-v2.synthetic.json"
+SCHEMA_V2 = ROOT / "configs/contracts/gguf-header-inventory-v2.schema.json"
+# Independently stated v2 superset: the six block geometries measured in the real
+# header, plus geometry/packed sizes asserted directly rather than taken from a parser.
+GEOMETRY_V2 = {**GEOMETRY, 14: ("Q6_K", 256, 210), 16: ("IQ2_XXS", 256, 66),
+               20: ("IQ4_NL", 32, 18), 22: ("IQ2_S", 256, 82),
+               23: ("IQ4_XS", 256, 136), 29: ("IQ1_M", 256, 56)}
+
+
 def fixture():
     return json.loads(FIXTURE.read_text(encoding="utf-8"))
+
+
+def fixture_v2():
+    return json.loads(FIXTURE_V2.read_text(encoding="utf-8"))
 
 
 def replace_path(document, path, value):
@@ -85,6 +108,40 @@ def missing_shard():
     document["totals"] = {"tensor_count": 3, "known_storage_bytes": 660, "unknown_storage_tensors": 1}
     document["split"] = {"status": "incomplete", "declared_shards": 2, "declared_tensors": 5,
                          "present_indices": [0], "missing_indices": [1], "diagnostics": ["split-shards-missing"]}
+    return document
+
+
+def single_tensor_v2(type_id=14, name="test.tensor", shape=None):
+    document = fixture_v2()
+    shard = document["shards"][0]
+    shard.update(file_size_bytes=4096, header_end_bytes=64, data_start_bytes=64, tensor_count=1)
+    shard["split"] = {"index": 0, "count": 1, "total_tensors": 1}
+    type_name, elements, block_bytes = GEOMETRY_V2[type_id]
+    shape = [elements * 2, 3] if shape is None else shape
+    rows = 1
+    for dimension in shape[1:]:
+        rows *= dimension
+    stride = shape[0] // elements * block_bytes
+    tensor = {"name": name, "shard": "shard-0000", "shape": shape,
+              "ggml_type_id": type_id, "ggml_type_name": type_name,
+              "relative_offset_bytes": 0, "absolute_offset_bytes": 64,
+              "storage": {"layout": "gguf-row-blocks", "block_elements": elements,
+                          "block_bytes": block_bytes, "row_stride_bytes": stride, "data_bytes": stride * rows},
+              "tensor_sha256": None}
+    document["shards"] = [shard]
+    document["tensors"] = [tensor]
+    document["split"] = {"status": "complete", "declared_shards": 1, "declared_tensors": 1,
+                         "present_indices": [0], "missing_indices": [], "diagnostics": []}
+    document["totals"] = {"tensor_count": 1, "known_storage_bytes": stride * rows, "unknown_storage_tensors": 0}
+    return document
+
+
+def unknown_tensor_v2(type_id=999, type_name="type999"):
+    document = single_tensor_v2()
+    document["tensors"][0].update(ggml_type_id=type_id, ggml_type_name=type_name, shape=[7, 3])
+    document["tensors"][0]["storage"] = {"layout": "unknown", "block_elements": None, "block_bytes": None,
+                                         "row_stride_bytes": None, "data_bytes": None}
+    document["totals"].update(known_storage_bytes=0, unknown_storage_tensors=1)
     return document
 
 
@@ -798,6 +855,16 @@ class InventoryCliTests(unittest.TestCase):
         self.assertIs(report["strict_complete_requested"], False)
         self.assertIs(report["valid"], True)
 
+    def test_default_summary_bytes_match_the_accepted_v1_baseline(self):
+        # Captured from the accepted #18 validator (b4be7c78) over this fixture:
+        # the schema-version-2 work must not add keys or move v1 output bytes.
+        code, out, error = self.execute([])
+        self.assertEqual((code, error), (0, ""))
+        self.assertEqual(hashlib.sha256(out.encode()).hexdigest(), V1_REPORT_SHA256)
+        self.assertEqual(frozenset(json.loads(out)), V1_REPORT_KEYS)
+        self.assertNotIn("schema_version", json.loads(out))
+        self.assertNotIn("profile", json.loads(out))
+
     def test_strict_complete_unknown_layout_returns_three_with_valid_summary(self):
         code, out, error = self.execute(["--strict-complete"])
         self.assertEqual(code, 3)
@@ -847,6 +914,15 @@ class InventoryCliTests(unittest.TestCase):
             self.assertEqual(out, "")
             self.assertIn("invalid_json", error)
             self.assertNotIn("private-secret", error)
+
+    def test_help_states_the_receipt_version_dispatch(self):
+        stdout = io.StringIO()
+        with redirect_stdout(stdout), self.assertRaises(SystemExit) as caught:
+            checker.main(["--help"])
+        self.assertEqual(caught.exception.code, 0)
+        help_text = stdout.getvalue()
+        self.assertIn("validated against the version it", help_text)
+        self.assertIn("receipt JSON that must declare schema_version", help_text)
 
     def test_arguments_reject_unknown_modes_or_missing_path(self):
         for arguments in (["--hf", "secret"], ["--receipt"], ["--unknown-private-path"], ["unexpected.json"]):
@@ -902,6 +978,247 @@ class InventorySchemaTests(unittest.TestCase):
         self.assertEqual(set(conditional[-1]["if"]["properties"]["ggml_type_id"]["not"]["enum"]), set(GEOMETRY))
         self.assertEqual(definitions["uint63"]["maximum"], 9223372036854775807)
         self.assertEqual(definitions["tensor"]["properties"]["shape"]["maxItems"], 8)
+
+
+class InventoryV2SemanticTests(unittest.TestCase):
+    def assert_invalid(self, document):
+        with self.assertRaises(checker.InventoryError) as caught:
+            checker.validate(document)
+        self.assertEqual(caught.exception.code, "invalid_receipt")
+        return caught.exception
+
+    def test_v2_fixture_is_complete_valid_and_never_promotes_claims(self):
+        document = fixture_v2()
+        result = checker.validate(document)
+        self.assertEqual([tensor["ggml_type_id"] for tensor in document["tensors"]],
+                         [22, 14, 16, 29, 23, 20])
+        self.assertEqual([tensor["storage"]["data_bytes"] for tensor in document["tensors"]],
+                         [82 * 2 * 3, 210 * 2 * 2, 66 * 2, 56 * 2, 136 * 2, 18 * 2 * 3])
+        self.assertEqual(result["totals"],
+                         {"tensor_count": 6, "known_storage_bytes": 1956, "unknown_storage_tensors": 0})
+        self.assertEqual(result["schema_version"], 2)
+        self.assertEqual(result["profile"], "bounded-local-v2")
+        self.assertEqual(result["split_status"], "complete")
+        self.assertTrue(result["header_declarations_complete"])
+        self.assertIs(result["header_only"], True)
+        for key in FALSE_CLAIMS + ("source_identity_verified",):
+            self.assertIs(result[key], False)
+        self.assertIn("unverified declarations", result["note"])
+
+    def test_v2_confirms_the_six_measured_additions_and_keeps_iq1_s_mxfp4_nvfp4_unknown(self):
+        self.assertEqual(set(checker.CONFIRMED_TYPES), set(GEOMETRY))
+        self.assertEqual(set(checker.CONFIRMED_TYPES_V2), set(GEOMETRY_V2))
+        self.assertEqual(set(GEOMETRY_V2) - set(GEOMETRY), {14, 16, 20, 22, 23, 29})
+        for type_id, (type_name, elements, block_bytes) in GEOMETRY_V2.items():
+            with self.subTest(type_id=type_id):
+                document = single_tensor_v2(type_id)
+                result = checker.validate(document)
+                self.assertEqual(document["tensors"][0]["ggml_type_name"], type_name)
+                self.assertEqual(result["totals"]["known_storage_bytes"], 6 * block_bytes)
+                self.assertTrue(result["header_declarations_complete"])
+        for type_id in (19, 39, 40, 41, 999):
+            with self.subTest(unknown_type=type_id):
+                result = checker.validate(unknown_tensor_v2(type_id, f"type{type_id}"))
+                self.assertEqual(result["totals"]["unknown_storage_tensors"], 1)
+                self.assertFalse(result["header_declarations_complete"])
+
+    def test_v2_declarations_raise_only_the_two_array_item_ceilings_and_keep_claims(self):
+        v1_document, v2_document = fixture(), fixture_v2()
+        v1_limits, v2_limits = v1_document["limits"], v2_document["limits"]
+        self.assertEqual(set(v2_limits), set(v1_limits))
+        raised = {key: v2_limits[key] for key in v1_limits if v1_limits[key] != v2_limits[key]}
+        self.assertEqual(raised, {"max_array_items_per_file": 2000000, "max_array_items_total": 4000000})
+        self.assertEqual({key: value for key, value in v2_document["producer"].items() if key != "mode"},
+                         {key: value for key, value in v1_document["producer"].items() if key != "mode"})
+        self.assertEqual(v1_document["producer"]["mode"], "bounded-local-v1")
+        self.assertEqual(v2_document["producer"]["mode"], "bounded-local-v2")
+        self.assertEqual(v2_document["claims"], v1_document["claims"])
+        self.assertIs(v2_document["claims"]["header_only"], True)
+        for key in FALSE_CLAIMS:
+            self.assertIs(v2_document["claims"][key], False)
+
+    def test_v2_rejects_cross_profile_documents_and_unsupported_versions(self):
+        v1_as_v2 = fixture()
+        v1_as_v2["schema_version"] = 2
+        self.assert_invalid(v1_as_v2)
+        v2_as_v1 = fixture_v2()
+        v2_as_v1["schema_version"] = 1
+        self.assert_invalid(v2_as_v1)
+        for version in (0, 3, True, 2.0, "2", None):
+            with self.subTest(version=version):
+                document = fixture_v2()
+                document["schema_version"] = version
+                self.assert_invalid(document)
+        document = fixture_v2()
+        document["producer"]["mode"] = "bounded-local-v1"
+        self.assert_invalid(document)
+        for key in ("max_array_items_per_file", "max_array_items_total"):
+            with self.subTest(reverted_limit=key):
+                document = fixture_v2()
+                document["limits"][key] = fixture()["limits"][key]
+                self.assert_invalid(document)
+        document = fixture_v2()
+        document["claims"]["device_ready"] = True
+        self.assert_invalid(document)
+
+    def test_v2_new_geometry_alias_and_extent_tampering_reject(self):
+        for path, value in ((("tensors", 0, "storage", "block_bytes"), 74),
+                            (("tensors", 0, "storage", "block_elements"), 32),
+                            (("tensors", 0, "ggml_type_name"), "IQ2_XS"),
+                            (("tensors", 0, "storage", "row_stride_bytes"), 81),
+                            (("tensors", 0, "storage", "data_bytes"), 491)):
+            with self.subTest(path=path, value=value):
+                document = fixture_v2()
+                replace_path(document, path, value)
+                self.assert_invalid(document)
+
+
+class InventoryV2CliTests(unittest.TestCase):
+    def execute(self, argv):
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            code = checker.main(argv)
+        return code, stdout.getvalue(), stderr.getvalue()
+
+    def receipt_cli(self, document, extra=()):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "receipt.json"
+            path.write_text(json.dumps(document, ensure_ascii=True, allow_nan=False), encoding="utf-8")
+            return self.execute(["--receipt", str(path), *extra])
+
+    def test_v2_default_and_strict_complete_exit_zero(self):
+        code, out, error = self.receipt_cli(fixture_v2())
+        self.assertEqual((code, error), (0, ""))
+        report = json.loads(out)
+        self.assertIs(report["valid"], True)
+        self.assertEqual(report["schema_version"], 2)
+        self.assertIs(report["strict_complete_requested"], False)
+        self.assertIs(report["header_declarations_complete"], True)
+        code, out, error = self.receipt_cli(fixture_v2(), ("--strict-complete",))
+        self.assertEqual((code, error), (0, ""))
+        report = json.loads(out)
+        self.assertIs(report["strict_complete_requested"], True)
+        self.assertIs(report["header_declarations_complete"], True)
+
+    def test_v2_summary_surface_is_the_v1_surface_plus_the_declared_profile(self):
+        code, out, error = self.receipt_cli(fixture_v2())
+        self.assertEqual((code, error), (0, ""))
+        report = json.loads(out)
+        self.assertEqual(frozenset(report), V1_REPORT_KEYS | {"schema_version", "profile"})
+        self.assertEqual(report["schema_version"], 2)
+        self.assertEqual(report["profile"], "bounded-local-v2")
+
+    def test_v2_local_unverified_input_kind_is_echoed_and_unsupported_version_exits_two(self):
+        document = fixture_v2()
+        document["input_kind"] = "local-unverified"
+        code, out, _error = self.receipt_cli(document)
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(out)["input_kind"], "local-unverified")
+        document["schema_version"] = 3
+        code, out, error = self.receipt_cli(document)
+        self.assertEqual((code, out), (2, ""))
+        self.assertIn("invalid_receipt", error)
+        self.assertIn("schema_version", error)
+
+    def test_receipt_v2_shorthand_selection_and_version_pin(self):
+        code, out, error = self.execute(["--receipt-v2", "--strict-complete"])
+        self.assertEqual((code, error), (0, ""))
+        report = json.loads(out)
+        self.assertEqual(report["schema_version"], 2)
+        self.assertIs(report["header_declarations_complete"], True)
+        with tempfile.TemporaryDirectory() as directory:
+            v1_path = Path(directory) / "v1.json"
+            v1_path.write_text(json.dumps(fixture()), encoding="utf-8")
+            code, out, error = self.execute(["--receipt-v2", str(v1_path)])
+            self.assertEqual((code, out), (2, ""))
+            self.assertIn("--receipt-v2 requires schema_version 2", error)
+            code, out, error = self.execute(["--receipt", str(v1_path), "--receipt-v2"])
+            self.assertEqual((code, out), (2, ""))
+            self.assertIn("choose one of", error)
+
+
+class InventorySchemaV2Tests(unittest.TestCase):
+    def test_v2_schema_is_closed_and_binds_the_frozen_v2_declarations(self):
+        schema, document = checker.load_receipt(SCHEMA_V2), fixture_v2()
+        self.assertEqual(schema["$schema"], "https://json-schema.org/draft/2020-12/schema")
+        self.assertEqual(schema["title"], "Bounded Strata GGUF header inventory receipt v2")
+        self.assertTrue(schema["$id"].endswith("/gguf-header-inventory-v2.schema.json"))
+        self.assertIs(schema["additionalProperties"], False)
+        self.assertEqual(set(schema["required"]), set(document))
+        self.assertEqual(set(schema["properties"]), set(document))
+        self.assertEqual(schema["properties"]["schema_version"], {"type": "integer", "const": 2})
+        definitions = schema["$defs"]
+        for key, value in document["limits"].items():
+            self.assertEqual(definitions["limits"]["properties"][key], {"type": "integer", "const": value})
+        for key, value in document["producer"].items():
+            self.assertEqual(definitions["producer"]["properties"][key], {"type": "string", "const": value})
+        for key, value in document["claims"].items():
+            self.assertEqual(definitions["claims"]["properties"][key], {"type": "boolean", "const": value})
+        self.assertEqual(definitions["rowStorage"]["properties"]["block_elements"]["enum"], [1, 32, 64, 256])
+        self.assertEqual(definitions["rowStorage"]["properties"]["block_bytes"]["enum"],
+                         [1, 2, 4, 8, 18, 34, 56, 66, 74, 82, 110, 136, 210])
+
+    def test_v2_schema_confirmed_geometry_rows_match_the_frozen_subset(self):
+        conditional = checker.load_receipt(SCHEMA_V2)["$defs"]["tensor"]["allOf"]
+        self.assertEqual(len(conditional), len(GEOMETRY_V2) + 1)
+        declared = [clause["if"]["properties"]["ggml_type_id"]["const"] for clause in conditional[:-1]]
+        self.assertEqual(declared, sorted(GEOMETRY_V2))
+        for type_id, clause in zip(declared, conditional[:-1]):
+            expected_name, elements, block_bytes = GEOMETRY_V2[type_id]
+            props = clause["then"]["properties"]
+            self.assertEqual(props["ggml_type_name"], {"const": expected_name})
+            self.assertEqual(props["storage"]["properties"]["block_elements"], {"const": elements})
+            self.assertEqual(props["storage"]["properties"]["block_bytes"], {"const": block_bytes})
+        catch_all = conditional[-1]["if"]["properties"]["ggml_type_id"]["not"]["enum"]
+        self.assertEqual(set(catch_all), set(GEOMETRY_V2))
+
+    def test_v1_and_v2_schemas_differ_only_in_the_declared_profile_surfaces(self):
+        v1 = checker.load_receipt(SCHEMA)
+        v2 = checker.load_receipt(SCHEMA_V2)
+        self.assertEqual(set(v1["$defs"]), set(v2["$defs"]))
+        for name in set(v1["$defs"]) - {"producer", "limits", "rowStorage", "tensor"}:
+            with self.subTest(definition=name):
+                self.assertEqual(v1["$defs"][name], v2["$defs"][name])
+        self.assertEqual(v1["$defs"]["claims"], v2["$defs"]["claims"])
+        for name in ("producer", "rowStorage"):
+            with self.subTest(definition=name):
+                self.assertEqual({key: value for key, value in v1["$defs"][name].items() if key != "properties"},
+                                 {key: value for key, value in v2["$defs"][name].items() if key != "properties"})
+        self.assertEqual({key: value for key, value in v1["$defs"]["limits"].items()
+                          if key not in ("properties", "description")},
+                         {key: value for key, value in v2["$defs"]["limits"].items()
+                          if key not in ("properties", "description")})
+        self.assertNotEqual(v1["$defs"]["limits"]["description"], v2["$defs"]["limits"]["description"])
+        self.assertIn("raises only the two array-item ceilings", v2["$defs"]["limits"]["description"])
+        for key, value in v1["$defs"]["producer"]["properties"].items():
+            if key == "mode":
+                self.assertEqual(value["const"], "bounded-local-v1")
+                self.assertEqual(v2["$defs"]["producer"]["properties"][key]["const"], "bounded-local-v2")
+            else:
+                self.assertEqual(v1["$defs"]["producer"]["properties"][key], v2["$defs"]["producer"]["properties"][key])
+        for key, value in v1["$defs"]["limits"]["properties"].items():
+            if key in ("max_array_items_per_file", "max_array_items_total"):
+                self.assertEqual(value["const"], document_limits(key, v1=True))
+                self.assertEqual(v2["$defs"]["limits"]["properties"][key]["const"], document_limits(key, v1=False))
+            else:
+                self.assertEqual(value, v2["$defs"]["limits"]["properties"][key])
+        for key, value in v1["$defs"]["rowStorage"]["properties"].items():
+            if key != "block_bytes":
+                self.assertEqual(value, v2["$defs"]["rowStorage"]["properties"][key])
+        v1_rows = {clause["if"]["properties"]["ggml_type_id"]["const"]: clause
+                   for clause in v1["$defs"]["tensor"]["allOf"][:-1]}
+        v2_rows = {clause["if"]["properties"]["ggml_type_id"]["const"]: clause
+                   for clause in v2["$defs"]["tensor"]["allOf"][:-1]}
+        self.assertEqual(set(v2_rows) - set(v1_rows), {14, 16, 20, 22, 23, 29})
+        for type_id, clause in v1_rows.items():
+            with self.subTest(row=type_id):
+                self.assertEqual(clause, v2_rows[type_id])
+        self.assertEqual(v1["$defs"]["tensor"]["allOf"][-1]["then"],
+                         v2["$defs"]["tensor"]["allOf"][-1]["then"])
+
+
+def document_limits(key, *, v1):
+    return fixture()["limits"][key] if v1 else fixture_v2()["limits"][key]
 
 
 if __name__ == "__main__":

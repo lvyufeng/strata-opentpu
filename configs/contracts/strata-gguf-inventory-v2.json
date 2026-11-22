@@ -1,0 +1,164 @@
+{
+  "schema_version": 2,
+  "contract_id": "strata-bounded-gguf-header-inventory-v2",
+  "evidence_scope": "source-and-synthetic-header-preparation",
+  "central_issue": "https://github.com/lvyufeng/strata-opentpu/issues/19",
+  "parent_issue": "https://github.com/lvyufeng/strata-opentpu/issues/6",
+  "receipt_schema": "configs/contracts/gguf-header-inventory-v2.schema.json",
+  "validator": "scripts/check_gguf_inventory.py",
+  "bootstrap_lock_changed": false,
+  "source": {
+    "repository": "https://github.com/lvyufeng/Strata",
+    "branch": "bounded-gguf-inventory",
+    "base_revision": "3142b66b96e9c0e775e30f620b11b191a1427c2a",
+    "revision": "97affb754d298b2cce1fc7b12338797ac155aa9b",
+    "tree": "e87f198acd761b9e7b855b90b9aeee992cee07fb",
+    "tool": "terminal/tools/quant_formats.py",
+    "adapter": "terminal/tools/gguf_inventory.py",
+    "parser": {
+      "path": "terminal/tools/gguf_reader.py",
+      "sha256": "c84a0f88c6c75a588cb7de74abd23b2e6387c92c58e088012aedef5bd3c6c431",
+      "changed": false,
+      "reuse": [
+        "GGUFFile._parse",
+        "GGUFFile._value"
+      ]
+    },
+    "file_sha256": {
+      "terminal/tools/gguf_inventory.py": "a0b242b2491f5aac76a9e07fd4039ccfe62e8d3705120459aa6f3ad9d1ad4c05",
+      "terminal/tools/quant_formats.py": "2de1ed0e085260a0dfb7a6369003a7b6a1efee7b4686005d5da0e5d39ccb338d",
+      "terminal/tools/test_gguf_inventory.py": "d8d4a670ed1ffcbfa6b31e11cf9b6ac13619e81cf5dfaed65fa80d61db6bcf22",
+      "docs/QUANTS.md": "b9204eb8783cd37171ea009eaa2f9a4ee883dd3170c31c8bebcfe696ce5ecf69",
+      ".github/workflows/gguf-inventory.yml": "6a2bc652979a3da1f8c3da87e876f9f60e7cef8e97e7462a6877b39983453e3a"
+    },
+    "license": "MIT",
+    "pull_request": null,
+    "upstream_scope_agreement": false,
+    "merged": false
+  },
+  "profile_changes": {
+    "from_schema_version": 1,
+    "to_schema_version": 2,
+    "producer_mode": "bounded-local-v2",
+    "raised_limits": {
+      "max_array_items_per_file": {
+        "v1": 500000,
+        "v2": 2000000
+      },
+      "max_array_items_total": {
+        "v1": 1000000,
+        "v2": 4000000
+      }
+    },
+    "binding_v1_limit": "max_array_items_per_file",
+    "measured_array_items_in_one_file": 744317,
+    "measured_basis": "bounded header-only probe of the actual IQ2_XS shard 1 on the authorised separate host",
+    "added_confirmed_type_ids": [
+      14,
+      16,
+      20,
+      22,
+      23,
+      29
+    ],
+    "still_unconfirmed_type_ids": [
+      19,
+      39,
+      40,
+      41
+    ],
+    "unchanged": "every other limit, all claims, the parser source and the v1 receipt surface"
+  },
+  "limits": {
+    "max_shards": 64,
+    "max_header_bytes_per_file": 16777216,
+    "max_header_bytes_total": 33554432,
+    "max_string_bytes": 1048576,
+    "max_string_bytes_total": 16777216,
+    "max_metadata_entries_per_file": 4096,
+    "max_metadata_entries_total": 8192,
+    "max_tensors_total": 100000,
+    "max_array_items_per_file": 2000000,
+    "max_array_items_total": 4000000,
+    "max_rank": 8,
+    "max_glob_entries": 4096,
+    "max_path_arguments": 64
+  },
+  "provenance_boundaries": {
+    "input_kind_is_declaration": true,
+    "producer_identifies_base_parser_not_current_executable": true,
+    "header_sha256_scope": "consumed-logical-header-only",
+    "artifact_sha256": null,
+    "tensor_sha256": null,
+    "payload_read": false,
+    "split_complete_means": "declared-header-set-only",
+    "unknown_storage_means": "null-not-zero-fit-or-backend-supported",
+    "logical_limits_are_os_sandbox": false,
+    "same_fd_checks_are_race_proof": false,
+    "json_validator_executes_source": false,
+    "json_validator_opens_referenced_artifacts": false,
+    "json_validator_verifies_source_identity": false,
+    "local_real_header_receipt": {
+      "retained": "ignored-local-workspace-only",
+      "committed": false,
+      "accepted_evidence": false,
+      "sha256": "fac6339ae1cb33e9742e24ff519aba721b27053c6d97330cd62a79606243c588",
+      "bytes": 605287,
+      "schema_version": 2,
+      "input_kind": "local-unverified",
+      "reported_totals": {
+        "tensor_count": 1224,
+        "known_storage_bytes": 68015068160,
+        "unknown_storage_tensors": 0
+      },
+      "note": "Retained outside the repository and not revalidated by public tests; not part of acceptance; proves no payload, artifact-integrity, legal-provenance, backend, device or throughput fact."
+    }
+  },
+  "acceptance": {
+    "kind": "reviewed-synthetic-source-preparation",
+    "local_python_versions": [
+      "3.11",
+      "3.14"
+    ],
+    "independent_correctness_review": true,
+    "independent_scope_review": true,
+    "review_record": "https://github.com/lvyufeng/strata-opentpu/issues/19#issuecomment-7075409283",
+    "literal_legacy_and_mock_hf_byte_baselines": true,
+    "synthetic_source_to_json_validator": true,
+    "v1_receipt_surface_unchanged": true,
+    "real_header_only_run": false,
+    "source_test_count_per_python": 87,
+    "integration_receipt_test_count_per_python": 70,
+    "integration_receipt_subtest_count_per_python": 166,
+    "ci": {
+      "url": "https://github.com/lvyufeng/Strata/actions/runs/44990573044",
+      "head_sha": "97affb754d298b2cce1fc7b12338797ac155aa9b",
+      "event": "push",
+      "branch": "bounded-gguf-inventory",
+      "run_attempt": 1,
+      "conclusion": "success",
+      "python_versions": [
+        "3.11",
+        "3.14"
+      ],
+      "test_count_per_python": 87
+    }
+  },
+  "claims": {
+    "input_provenance_verified": false,
+    "artifact_integrity_verified": false,
+    "model_completeness_verified": false,
+    "backend_compatibility_verified": false,
+    "device_ready": false,
+    "inference_ready": false,
+    "parents_accepted": false
+  },
+  "scope_exclusions": [
+    "actual model artifacts or legal provenance authentication",
+    "whole-file or tensor integrity hashing",
+    "CPU expert slicing, model loading, quantization or native kernels",
+    "FPGA layouts, RTL/operator/device/DMA parity",
+    "measured resource feasibility or residency planning",
+    "full-routing model correctness, MTP or full-wall throughput"
+  ]
+}

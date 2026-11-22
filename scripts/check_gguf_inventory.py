@@ -2,11 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 """Validate an inert Strata GGUF header receipt, never the referenced artifacts.
 
-The accompanying draft-2020-12 schema describes the fixed JSON envelope. This
-stdlib checker enforces that schema's exact fields/types and the cross-field
+The accompanying draft-2020-12 schemas describe the fixed JSON envelopes. This
+stdlib checker enforces those schemas' exact fields/types and the cross-field
 semantics which JSON Schema cannot express. It contains no GGUF reader, imports
 no Strata code, executes no supplied commands, and never authenticates hashes or
-input_kind. Complete declarations are not model, backend or inference acceptance.
+input_kind. Two frozen profiles exist: a schema_version 1 or 2 receipt is checked
+against its own pinned producer, limits and confirmed block geometry, and every
+other version is rejected without coercion. Complete declarations are not model,
+backend or inference acceptance.
 """
 from __future__ import annotations
 
@@ -23,7 +26,9 @@ import unicodedata
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RECEIPT = ROOT / "tests/fixtures/gguf-header-inventory.synthetic.json"
+DEFAULT_RECEIPT_V2 = ROOT / "tests/fixtures/gguf-header-inventory-v2.synthetic.json"
 SCHEMA_PATH = ROOT / "configs/contracts/gguf-header-inventory.schema.json"
+SCHEMA_PATH_V2 = ROOT / "configs/contracts/gguf-header-inventory-v2.schema.json"
 MAX_INTEGER = (1 << 63) - 1
 MAX_JSON_BYTES = 64 << 20
 MAX_JSON_DEPTH = 32
@@ -44,9 +49,32 @@ LIMITS = {
     "max_glob_entries": 4096,
     "max_path_arguments": 64,
 }
+# v2 raised ONLY the two array-item ceilings after measuring the real shard 1
+# header (744317 array items in one file). Every other ceiling is unchanged.
+LIMITS_V2 = {
+    "max_shards": 64,
+    "max_header_bytes_per_file": 16777216,
+    "max_header_bytes_total": 33554432,
+    "max_string_bytes": 1048576,
+    "max_string_bytes_total": 16777216,
+    "max_metadata_entries_per_file": 4096,
+    "max_metadata_entries_total": 8192,
+    "max_tensors_total": 100000,
+    "max_array_items_per_file": 2000000,
+    "max_array_items_total": 4000000,
+    "max_rank": 8,
+    "max_glob_entries": 4096,
+    "max_path_arguments": 64,
+}
 PRODUCER = {
     "tool": "Strata/terminal/tools/quant_formats.py",
     "mode": "bounded-local-v1",
+    "base_revision": "3142b66b96e9c0e775e30f620b11b191a1427c2a",
+    "parser_sha256": "c84a0f88c6c75a588cb7de74abd23b2e6387c92c58e088012aedef5bd3c6c431",
+}
+PRODUCER_V2 = {
+    "tool": "Strata/terminal/tools/quant_formats.py",
+    "mode": "bounded-local-v2",
     "base_revision": "3142b66b96e9c0e775e30f620b11b191a1427c2a",
     "parser_sha256": "c84a0f88c6c75a588cb7de74abd23b2e6387c92c58e088012aedef5bd3c6c431",
 }
@@ -68,6 +96,20 @@ CONFIRMED_TYPES = {
     24: ("I8", 1, 1), 25: ("I16", 1, 2), 26: ("I32", 1, 4),
     27: ("I64", 1, 8), 28: ("F64", 1, 8), 30: ("BF16", 1, 2),
     42: ("Q2_0", 64, 18),
+}
+# v2 additionally confirms the six measured types present in the real shard 1
+# header. IQ1_S (19), MXFP4 (39), NVFP4 (40) and 41 stay unknown.
+CONFIRMED_TYPES_V2 = {
+    **CONFIRMED_TYPES,
+    14: ("Q6_K", 256, 210), 16: ("IQ2_XXS", 256, 66),
+    20: ("IQ4_NL", 32, 18), 22: ("IQ2_S", 256, 82),
+    23: ("IQ4_XS", 256, 136), 29: ("IQ1_M", 256, 56),
+}
+PROFILES = {
+    1: {"producer": PRODUCER, "limits": LIMITS, "claims": CLAIMS,
+        "confirmed_types": CONFIRMED_TYPES},
+    2: {"producer": PRODUCER_V2, "limits": LIMITS_V2, "claims": CLAIMS,
+        "confirmed_types": CONFIRMED_TYPES_V2},
 }
 _HEX64 = re.compile(r"[0-9a-f]{64}\Z")
 _STORAGE_KEYS = {"layout", "block_elements", "block_bytes", "row_stride_bytes", "data_bytes"}
@@ -115,13 +157,13 @@ def _integer(value, label, minimum=0, maximum=MAX_INTEGER, nullable=False):
              f"{label}: integer outside permitted bounds")
 
 
-def _text(value, label):
+def _text(value, label, limits=LIMITS):
     _require(type(value) is str and bool(value), f"{label}: expected nonempty text")
     try:
         size = len(value.encode("utf-8", errors="strict"))
     except UnicodeError:
         raise InventoryError("invalid_receipt", f"{label}: invalid Unicode") from None
-    _require(size <= LIMITS["max_string_bytes"], f"{label}: string exceeds byte limit")
+    _require(size <= limits["max_string_bytes"], f"{label}: string exceeds byte limit")
     _require(not any(unicodedata.category(char) in ("Cc", "Cf", "Cs") for char in value),
              f"{label}: unsafe control characters")
     return size
@@ -171,27 +213,38 @@ def _derive_split(shards, actual_tensors):
             "present_indices": present, "missing_indices": missing, "diagnostics": diagnostics}
 
 
+def _select_profile(document):
+    """Pick the one frozen profile named by schema_version; never coerce versions."""
+    version = document.get("schema_version") if type(document) is dict else None
+    profile = PROFILES.get(version) if type(version) is int else None
+    _require(profile is not None, "schema_version: unsupported receipt schema version")
+    return version, profile
+
+
 def validate(document):
     """Check fixed receipt shape and arithmetic; return an unverified summary.
 
-    Observable name/header/count bounds are checked. Metadata/array/string data
-    not exported in the receipt cannot be independently inspected: their LIMITS
-    entries remain fixed producer declarations, not authenticated execution facts.
+    Observable name/header/count bounds are checked against the profile that
+    schema_version selects. Metadata/array/string data not exported in the receipt
+    cannot be independently inspected: their limits entries remain fixed producer
+    declarations, not authenticated execution facts.
     No source lock, model file, hash target, path or URL in the receipt is opened.
     """
+    version, profile = _select_profile(document)
+    limits = profile["limits"]
     _object(document, {"schema_version", "kind", "input_kind", "producer", "limits",
                        "shards", "tensors", "split", "totals", "claims"}, "receipt")
-    _fixed(document["schema_version"], 1, "schema_version")
+    _fixed(document["schema_version"], version, "schema_version")
     _fixed(document["kind"], "gguf-header-inventory", "kind")
     _require(type(document["input_kind"]) is str
              and document["input_kind"] in ("synthetic", "local-unverified"), "input_kind: invalid declaration")
-    _fixed(document["producer"], PRODUCER, "producer")
-    _fixed(document["limits"], LIMITS, "limits")
-    _fixed(document["claims"], CLAIMS, "claims")
+    _fixed(document["producer"], profile["producer"], "producer")
+    _fixed(document["limits"], limits, "limits")
+    _fixed(document["claims"], profile["claims"], "claims")
     shards = document["shards"]
     tensors = document["tensors"]
-    _require(type(shards) is list and 1 <= len(shards) <= LIMITS["max_shards"], "shards: invalid count")
-    _require(type(tensors) is list and len(tensors) <= LIMITS["max_tensors_total"], "tensors: invalid count")
+    _require(type(shards) is list and 1 <= len(shards) <= limits["max_shards"], "shards: invalid count")
+    _require(type(tensors) is list and len(tensors) <= limits["max_tensors_total"], "tensors: invalid count")
     shard_map = {}
     header_bytes = 0
     declared_tensor_count = 0
@@ -206,7 +259,7 @@ def validate(document):
         _require(type(shard["header_sha256"]) is str
                  and _HEX64.fullmatch(shard["header_sha256"]) is not None, "header_sha256: invalid declaration")
         _integer(shard["file_size_bytes"], "file_size_bytes", 24)
-        _integer(shard["header_end_bytes"], "header_end_bytes", 24, LIMITS["max_header_bytes_per_file"])
+        _integer(shard["header_end_bytes"], "header_end_bytes", 24, limits["max_header_bytes_per_file"])
         _integer(shard["data_start_bytes"], "data_start_bytes", 24)
         _integer(shard["alignment_bytes"], "alignment_bytes", 8, 1048576)
         alignment = shard["alignment_bytes"]
@@ -215,17 +268,17 @@ def validate(document):
         expected_start = _add(shard["header_end_bytes"], alignment - 1, "header alignment") // alignment * alignment
         _require(shard["data_start_bytes"] == expected_start, "data_start_bytes: incorrect header alignment")
         header_bytes += shard["header_end_bytes"]
-        _require(header_bytes <= LIMITS["max_header_bytes_total"], "headers: total byte limit exceeded")
-        _integer(shard["tensor_count"], "shard tensor_count", 0, LIMITS["max_tensors_total"])
+        _require(header_bytes <= limits["max_header_bytes_total"], "headers: total byte limit exceeded")
+        _integer(shard["tensor_count"], "shard tensor_count", 0, limits["max_tensors_total"])
         declared_tensor_count += shard["tensor_count"]
-        _require(declared_tensor_count <= LIMITS["max_tensors_total"], "shards: total tensor limit exceeded")
+        _require(declared_tensor_count <= limits["max_tensors_total"], "shards: total tensor limit exceeded")
         if shard["tensor_count"]:
             _require(shard["data_start_bytes"] <= shard["file_size_bytes"], "data region: exceeds declared file size")
         split = shard["split"]
         _object(split, _SPLIT_KEYS, "shard split")
-        _integer(split["index"], "split index", 0, LIMITS["max_shards"] - 1, nullable=True)
-        _integer(split["count"], "split count", 1, LIMITS["max_shards"], nullable=True)
-        _integer(split["total_tensors"], "split total_tensors", 0, LIMITS["max_tensors_total"], nullable=True)
+        _integer(split["index"], "split index", 0, limits["max_shards"] - 1, nullable=True)
+        _integer(split["count"], "split count", 1, limits["max_shards"], nullable=True)
+        _integer(split["total_tensors"], "split total_tensors", 0, limits["max_tensors_total"], nullable=True)
         if split["index"] is not None and split["count"] is not None:
             _require(split["index"] < split["count"], "split: shard index outside count")
         shard_map[shard["label"]] = {"declaration": shard, "actual_count": 0, "known": [], "unknown": []}
@@ -236,8 +289,8 @@ def validate(document):
     for tensor in tensors:
         _object(tensor, {"name", "shard", "shape", "ggml_type_id", "ggml_type_name", "relative_offset_bytes",
                          "absolute_offset_bytes", "storage", "tensor_sha256"}, "tensor")
-        name_bytes += _text(tensor["name"], "tensor name")
-        _require(name_bytes <= LIMITS["max_string_bytes_total"], "tensor names: total byte limit exceeded")
+        name_bytes += _text(tensor["name"], "tensor name", limits)
+        _require(name_bytes <= limits["max_string_bytes_total"], "tensor names: total byte limit exceeded")
         _require(tensor["name"] not in seen_names, "tensor names: global duplicate")
         seen_names.add(tensor["name"])
         _require(type(tensor["shard"]) is str and tensor["shard"] in shard_map, "tensor shard: unknown label")
@@ -248,12 +301,12 @@ def validate(document):
         entry["actual_count"] += 1
         shard = entry["declaration"]
         shape = tensor["shape"]
-        _require(type(shape) is list and 1 <= len(shape) <= LIMITS["max_rank"], "shape: invalid raw GGUF rank")
+        _require(type(shape) is list and 1 <= len(shape) <= limits["max_rank"], "shape: invalid raw GGUF rank")
         for dimension in shape:
             _integer(dimension, "shape dimension", 1)
         _product(shape, "shape")
         _integer(tensor["ggml_type_id"], "ggml_type_id", 0, (1 << 32) - 1)
-        _text(tensor["ggml_type_name"], "ggml_type_name")
+        _text(tensor["ggml_type_name"], "ggml_type_name", limits)
         _integer(tensor["relative_offset_bytes"], "relative_offset_bytes")
         _integer(tensor["absolute_offset_bytes"], "absolute_offset_bytes", 1)
         relative = tensor["relative_offset_bytes"]
@@ -266,7 +319,7 @@ def validate(document):
         _fixed(tensor["tensor_sha256"], None, "tensor_sha256")
         storage = tensor["storage"]
         _object(storage, _STORAGE_KEYS, "storage")
-        geometry = CONFIRMED_TYPES.get(tensor["ggml_type_id"])
+        geometry = profile["confirmed_types"].get(tensor["ggml_type_id"])
         if geometry is None:
             _fixed(storage, {"layout": "unknown", "block_elements": None, "block_bytes": None,
                              "row_stride_bytes": None, "data_bytes": None}, "unknown storage")
@@ -303,13 +356,20 @@ def validate(document):
                                 "missing_indices", "diagnostics"}, "split summary")
     split_summary = _derive_split(shards, len(tensors))
     _fixed(document["split"], split_summary, "split summary/facts/order/diagnostics")
-    return {"valid": True, "kind": "gguf-header-inventory", "input_kind": document["input_kind"],
-            "split_status": split_summary["status"], "split": split_summary, "totals": totals,
-            "header_declarations_complete": document["split"]["status"] == "complete" and unknown_count == 0,
-            "source_identity_verified": False, **CLAIMS,
-            "note": "Receipt consistency only. input_kind, producer identity, header hashes and inspection limits "
-                    "are unverified declarations. Known storage is a subtotal excluding unknown tensors, padding, "
-                    "metadata and runtime conversions. No artifact, model, backend, device or inference acceptance."}
+    report = {"valid": True, "kind": "gguf-header-inventory",
+              "input_kind": document["input_kind"],
+              "split_status": split_summary["status"], "split": split_summary, "totals": totals,
+              "header_declarations_complete": document["split"]["status"] == "complete" and unknown_count == 0,
+              "source_identity_verified": False, **profile["claims"],
+              "note": "Receipt consistency only. input_kind, producer identity, header hashes and inspection limits "
+                      "are unverified declarations. Known storage is a subtotal excluding unknown tensors, padding, "
+                      "metadata and runtime conversions. No artifact, model, backend, device or inference acceptance."}
+    # The schema-version-1 summary surface is the one accepted with #18; it stays
+    # byte-identical, so the selected profile is reported only for version 2.
+    if version == 2:
+        report["schema_version"] = version
+        report["profile"] = "bounded-local-v2"
+    return report
 
 
 def _json_pairs(pairs):
@@ -443,11 +503,23 @@ class _ArgumentParser(argparse.ArgumentParser):
 
 def main(argv=None):
     parser = _ArgumentParser(prog="check_gguf_inventory.py", description=__doc__)
-    parser.add_argument("--receipt", type=Path, default=DEFAULT_RECEIPT, help="Explicit receipt JSON; no artifact paths are followed")
+    parser.add_argument("--receipt", type=Path, default=None,
+                        help="Explicit receipt JSON validated against the version it declares; no artifact paths are followed")
+    parser.add_argument("--receipt-v2", type=Path, nargs="?", const=DEFAULT_RECEIPT_V2, default=None, metavar="PATH",
+                        help="Explicit receipt JSON that must declare schema_version 2 (default: the frozen v2 synthetic fixture)")
     parser.add_argument("--strict-complete", action="store_true", help="Require complete split declarations and no unknown storage (not inference acceptance)")
     try:
         args = parser.parse_args(argv)
-        report = validate(load_receipt(args.receipt))
+        _require(args.receipt is None or args.receipt_v2 is None, "Receipt: choose one of --receipt or --receipt-v2")
+        if args.receipt is not None:
+            report = validate(load_receipt(args.receipt))
+        elif args.receipt_v2 is not None:
+            document = load_receipt(args.receipt_v2)
+            declared = document.get("schema_version") if type(document) is dict else None
+            _require(type(declared) is int and declared == 2, "Receipt: --receipt-v2 requires schema_version 2")
+            report = validate(document)
+        else:
+            report = validate(load_receipt(DEFAULT_RECEIPT))
     except InventoryError as error:
         print(f"error: {error.code}: {error}", file=sys.stderr)
         return 2
