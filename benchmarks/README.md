@@ -9,6 +9,19 @@ consistency, not its scientific authenticity; it does not build or run CPU kerne
 An accepted branch experiment is still not full-model CPU decode or a wall-token
 rate. Actual experiments need specific host/input/build authorization.
 
+[Protocol v2](cpu-cold-expert-protocol-v2.md),
+[partial JSON template](templates/cpu-cold-expert-v2.json) and
+[offline v2 validator](../scripts/check_cpu_evidence_v2.py) cover the routed
+expert formats actually recorded in the audited GGUF header inventory: IQ2_S,
+IQ2_XXS and IQ1_M gate/up at 2560x640, with 640-column down rows recorded as
+Q2_0 (IQ2_S/IQ2_XXS/IQ1_M blocks cannot divide 640). A 640-wide IQ down row is
+rejected, never padded, transposed or relabelled. The v2 validator imports the
+sha256-pinned frozen v1 checker and rebinds only protocol, format matrix and
+type table, plus a read-only layout-contract drift check; v1 remains byte-frozen
+and v2 still rejects a v1 report. Nothing
+here is measured evidence: the v2 template is `partial` with `cases: []`, and
+structural consistency does not verify authenticity, correctness or throughput.
+
 Record software/checkpoint revisions, checksums, actual formats, CPU features,
 threads/NUMA, bitstream/config, negotiated link/measured DMA, context/output count,
 batch/concurrency, sampling/seed, warm/cold state, partition and memory footprint.

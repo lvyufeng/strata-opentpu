@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "protocol": "strata-cpu-cold-expert-v2",
+  "evidence_kind": "partial",
+  "source": {
+    "repository": "https://github.com/lvyufeng/Strata",
+    "revision": "3142b66b96e9c0e775e30f620b11b191a1427c2a"
+  },
+  "provenance": {
+    "experiment_id": null,
+    "observed_at": null,
+    "operator_label": null,
+    "producer": null,
+    "raw_artifact_sha256": null
+  },
+  "build": {
+    "compiler": null,
+    "compiler_version": null,
+    "flags": null,
+    "avx2_translation_unit_flags": null,
+    "quant_backend": null,
+    "ggml_revision": null,
+    "compiled_isa_floor": null,
+    "binary_sha256": null,
+    "build_log_sha256": null,
+    "environment": null
+  },
+  "host": {
+    "label": null,
+    "architecture": null,
+    "os": null,
+    "sockets": null,
+    "numa_nodes": null,
+    "topology": null,
+    "features": {
+      "osxsave": null,
+      "avx": null,
+      "fma": null,
+      "f16c": null,
+      "avx2": null
+    },
+    "cpuid_1_ecx": null,
+    "cpuid_7_ebx": null,
+    "xgetbv_executed": null,
+    "xcr0": null,
+    "avx2_usable": null,
+    "feature_probe_sha256": null,
+    "topology_sha256": null
+  },
+  "routing": {
+    "top_k": 10,
+    "expert_skip": 0,
+    "mtp": "off"
+  },
+  "matrix": {
+    "formats": ["IQ2_S", "IQ2_XXS", "IQ1_M"],
+    "roles": ["gate", "up", "down"],
+    "batch_sizes": [1, 4],
+    "thread_counts": [1, 2],
+    "numa_policies": ["local", "remote", "interleave", "contention"],
+    "cache_states": ["warm", "cold"],
+    "worker_nodes": null,
+    "repeat_count": 5,
+    "warmup_count": 1
+  },
+  "profiles": [
+    {
+      "id": "iq2-s-layer0-mixed-role",
+      "target_format": "IQ2_S",
+      "data_origin": null,
+      "model_id": null,
+      "model_sha256": null,
+      "tensor_metadata_sha256": null,
+      "layer": 0,
+      "expert": null,
+      "n_embd": 2560,
+      "n_ff": 640,
+      "layout": "native-row-packed-gate-up-down-v1",
+      "blob_sha256": null,
+      "blob_bytes": 1510400,
+      "roles": {
+        "gate": {"tensor_name": "blk.0.ffn_gate_exps.weight", "format": "IQ2_S", "type_id": 22, "shape": [640, 2560], "block_values": 256, "block_bytes": 82, "row_bytes": 820, "offset_bytes": 0, "tensor_sha256": null, "native_vec_dot_activation": "Q8_K"},
+        "up": {"tensor_name": "blk.0.ffn_up_exps.weight", "format": "IQ2_S", "type_id": 22, "shape": [640, 2560], "block_values": 256, "block_bytes": 82, "row_bytes": 820, "offset_bytes": 524800, "tensor_sha256": null, "native_vec_dot_activation": "Q8_K"},
+        "down": {"tensor_name": "blk.0.ffn_down_exps.weight", "format": "Q2_0", "type_id": 42, "shape": [2560, 640], "block_values": 64, "block_bytes": 18, "row_bytes": 180, "offset_bytes": 1049600, "tensor_sha256": null, "native_vec_dot_activation": "Q8_0"}
+      }
+    },
+    {
+      "id": "iq2-xxs-layer1-mixed-role",
+      "target_format": "IQ2_XXS",
+      "data_origin": null,
+      "model_id": null,
+      "model_sha256": null,
+      "tensor_metadata_sha256": null,
+      "layer": 1,
+      "expert": null,
+      "n_embd": 2560,
+      "n_ff": 640,
+      "layout": "native-row-packed-gate-up-down-v1",
+      "blob_sha256": null,
+      "blob_bytes": 1305600,
+      "roles": {
+        "gate": {"tensor_name": "blk.1.ffn_gate_exps.weight", "format": "IQ2_XXS", "type_id": 16, "shape": [640, 2560], "block_values": 256, "block_bytes": 66, "row_bytes": 660, "offset_bytes": 0, "tensor_sha256": null, "native_vec_dot_activation": "Q8_K"},
+        "up": {"tensor_name": "blk.1.ffn_up_exps.weight", "format": "IQ2_XXS", "type_id": 16, "shape": [640, 2560], "block_values": 256, "block_bytes": 66, "row_bytes": 660, "offset_bytes": 422400, "tensor_sha256": null, "native_vec_dot_activation": "Q8_K"},
+        "down": {"tensor_name": "blk.1.ffn_down_exps.weight", "format": "Q2_0", "type_id": 42, "shape": [2560, 640], "block_values": 64, "block_bytes": 18, "row_bytes": 180, "offset_bytes": 844800, "tensor_sha256": null, "native_vec_dot_activation": "Q8_0"}
+      }
+    },
+    {
+      "id": "iq1-m-layer8-mixed-role",
+      "target_format": "IQ1_M",
+      "data_origin": null,
+      "model_id": null,
+      "model_sha256": null,
+      "tensor_metadata_sha256": null,
+      "layer": 8,
+      "expert": null,
+      "n_embd": 2560,
+      "n_ff": 640,
+      "layout": "native-row-packed-gate-up-down-v1",
+      "blob_sha256": null,
+      "blob_bytes": 1177600,
+      "roles": {
+        "gate": {"tensor_name": "blk.8.ffn_gate_exps.weight", "format": "IQ1_M", "type_id": 29, "shape": [640, 2560], "block_values": 256, "block_bytes": 56, "row_bytes": 560, "offset_bytes": 0, "tensor_sha256": null, "native_vec_dot_activation": "Q8_K"},
+        "up": {"tensor_name": "blk.8.ffn_up_exps.weight", "format": "IQ1_M", "type_id": 29, "shape": [640, 2560], "block_values": 256, "block_bytes": 56, "row_bytes": 560, "offset_bytes": 358400, "tensor_sha256": null, "native_vec_dot_activation": "Q8_K"},
+        "down": {"tensor_name": "blk.8.ffn_down_exps.weight", "format": "Q2_0", "type_id": 42, "shape": [2560, 640], "block_values": 64, "block_bytes": 18, "row_bytes": 180, "offset_bytes": 716800, "tensor_sha256": null, "native_vec_dot_activation": "Q8_0"}
+      }
+    }
+  ],
+  "cases": [],
+  "notes": [
+    "Source-only protocol/template. No CPU build, model payload read, host probe, NUMA experiment or benchmark has been performed or authorized by this file.",
+    "Target formats are the real routed expert gate/up tensor types (IQ2_S 22, IQ2_XXS 16, IQ1_M 29) read from the audited GGUF header inventory; expert down tensors are Q2_0 (42) at 640 columns.",
+    "Null means unknown, not unsupported, zero or a successful measurement. Layer and block geometry are header facts; tensor hashes, blob hashes, host and timings remain unknown.",
+    "A 640-column down row cannot be IQ2_S/IQ2_XXS/IQ1_M (256-value blocks); never pad, transpose, relabel or substitute it. Q2_0 is the only recorded down format.",
+    "Full routing top10/expert_skip0/MTPoff is required, but CPU branch evidence is not end-to-end inference or >10 tok/s evidence.",
+    "No addresses, model paths, credentials, binary payloads, or fabricated host/performance values are included."
+  ]
+}
