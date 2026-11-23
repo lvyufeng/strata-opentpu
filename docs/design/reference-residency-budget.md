@@ -21,8 +21,8 @@ redesign.
 
 | Input | Identity | Use |
 | --- | --- | --- |
-| [inventory.v2.json](../../local/acquisition/iq2xs-inventory/inventory.v2.json) | sha256 `fac6339ae1cb33e9742e24ff519aba721b27053c6d97330cd62a79606243c588`; 1,224 tensors; `known_storage_bytes` 68,015,068,160; `input_kind` `local-unverified`; `claims.header_only` true, all byte/verification claims false | per-tensor native GGUF storage bytes `[W]` |
-| [qwen38flasnext-config.json](../../local/acquisition/qwen38flasnext-config.json) | sha256 `889658f2508e8c61d409b02e70e0d78d8d4452ec65aaafbe129805d213d2e74b` | layer/KV/state/head geometry, dtypes `[C]` |
+| `local/acquisition/iq2xs-inventory/inventory.v2.json` | sha256 `fac6339ae1cb33e9742e24ff519aba721b27053c6d97330cd62a79606243c588`; 1,224 tensors; `known_storage_bytes` 68,015,068,160; `input_kind` `local-unverified`; `claims.header_only` true, all byte/verification claims false | per-tensor native GGUF storage bytes `[W]` |
+| `local/acquisition/qwen38flasnext-config.json` | sha256 `889658f2508e8c61d409b02e70e0d78d8d4452ec65aaafbe129805d213d2e74b` | layer/KV/state/head geometry, dtypes `[C]` |
 | [architecture.md](../architecture.md) | reference target Inspur YPCB-00338-1P1 / Kintex-7 XC7K480T with two 2 GiB DDR3 banks; the budget line names fixed weights, KV/recurrent state, transfer buffers and hot experts | device envelope and decomposition `[D]` |
 | [cpu-cold-expert-protocol-v2.md](../../benchmarks/cpu-cold-expert-protocol-v2.md) and its accepted report | sha256 `6e9f0644…` report, 237 measured cases, one expert branch per case | CPU branch timings used only for the projection `[M]` |
 
@@ -63,7 +63,7 @@ overhead and row padding.
 | Expert sum over 48 layers | **35,454,976,000** | 34×773,324,800 + 11×668,467,200 + 3×602,931,200 |
 
 Per-expert native footprint `[W]`, from the frozen slice fixture
-([issue5-slices.json](../../local/issue5-slices.json),
+(`local/issue5-slices.json`,
 sha256 `4c570bcb…`), blob = `[gate|up|down]`:
 
 | Format | gate bytes | up bytes | down bytes | footprint |

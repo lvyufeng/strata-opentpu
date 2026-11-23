@@ -27,7 +27,7 @@ SCHEMA_V2 = "configs/contracts/resource-budget-v2.schema.json"
 
 # Literals, not values derived from the files under test.
 SCRIPT_SHA256 = "20d30b10b4b8ba1cb54e99fd3cc99ec9ca1af2d171595b116c5eca9ab7d8baa8"
-DESIGN_SHA256 = "7d4f7a67055404641d60d44269ff72f03d13d36e490b4ddef20be1f9ed349dba"
+DESIGN_SHA256 = "8cf9fcaff944ddb77ffc6c7bfb12656b91bef7360ecaf2235939e838c1e0cfa4"
 TEST_MODULE_SHA256 = "8acb015ac5bd2b60f1bc672aae1be48c39b8579543b87b58a004b4c0a591ccab"
 
 # Curated declared arithmetic that must stay identical in the design prose and in
@@ -124,15 +124,21 @@ class DocumentedArithmeticTest(unittest.TestCase):
 
     def test_design_links_the_v2_schema_and_inputs(self) -> None:
         for link in (
-            "../../local/acquisition/iq2xs-inventory/inventory.v2.json",
-            "../../local/acquisition/qwen38flasnext-config.json",
-            "../../local/issue5-slices.json",
             "../../scripts/residency_reference.py",
             "../../benchmarks/cpu-cold-expert-protocol-v2.md",
             "../../configs/contracts/resource-budget-v2.schema.json",
         ):
             with self.subTest(link=link):
                 self.assertIn(link, self.design)
+        for local_input in (
+            "`local/acquisition/iq2xs-inventory/inventory.v2.json`",
+            "`local/acquisition/qwen38flasnext-config.json`",
+            "`local/issue5-slices.json`",
+        ):
+            with self.subTest(local_input=local_input):
+                self.assertIn(local_input, self.design)
+        self.assertNotIn("../../local/", self.design,
+                         "gitignored inputs must not be markdown links")
 
     def test_design_keeps_the_unknowns_and_limits_sections(self) -> None:
         self.assertIn("## 5. What is unknown", self.design)
