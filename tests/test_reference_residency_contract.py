@@ -27,7 +27,7 @@ SCHEMA_V2 = "configs/contracts/resource-budget-v2.schema.json"
 
 # Literals, not values derived from the files under test.
 SCRIPT_SHA256 = "20d30b10b4b8ba1cb54e99fd3cc99ec9ca1af2d171595b116c5eca9ab7d8baa8"
-DESIGN_SHA256 = "b00b0be617df0a51542bbcb63430a515388557b2f337d723515c3816bc348d25"
+DESIGN_SHA256 = "38d93dd39cd127cd059888d1a0f124c94a7ad66b00c741dbec84d851e9d9e5a1"
 TEST_MODULE_SHA256 = "8acb015ac5bd2b60f1bc672aae1be48c39b8579543b87b58a004b4c0a591ccab"
 
 # Curated declared arithmetic that must stay identical in the design prose and in

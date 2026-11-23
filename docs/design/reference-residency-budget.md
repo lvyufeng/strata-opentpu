@@ -289,10 +289,14 @@ a prior session, no reset was issued):
 | `0x054 DDR_MTS` | 1066 | DDR3-1066 |
 | `0x058 ACT_ROWS` | 16 | activation rows |
 | `0x05C CAPS2` | 0 | r2 default `COLL_GATHER=0` (not an anomaly) |
-| `0x0C0/0x0C4/0x0C8/0x0CC CFG` | 1 / 65536 / 32768 / 128 | slice / TMEM words / IMEM words / activation blocks |
-| `0x0D0 CFG DRAM` | `0x001f0220` | **4,294,967,296 B total, 2,147,483,648 B per channel, 64-byte beats** |
-| `0x0D8 CFG PLATFORM` | 1 | YPCB-00338 platform id |
-| `0x0DC CFG ARCH_HASH` | `0x4ffd1e17` | equals the `variants.m4` config hash |
+| `0x080 CFG S` | 1 | one slice |
+| `0x084 CFG TMEM_WORDS` | 65536 | tensor memory words |
+| `0x088 CFG IMEM_WORDS` | 32768 | instruction memory words |
+| `0x08C CFG ACT_BLOCKS` | 128 | activation blocks |
+| `0x090 CFG DRAM` | `0x001f0220` | **4,294,967,296 B total, 2,147,483,648 B per channel, 64-byte beats** |
+| `0x094 CFG UARCH` | `0x01080232` | systolic MXU, TMEM impl 3, 2 VPU clusters, 8 micro-lanes |
+| `0x098 CFG PLATFORM` | 1 | YPCB-00338 platform id |
+| `0x09C CFG ARCH_HASH` | `0x4ffd1e17` | equals the `variants.m4` config hash |
 
 The device therefore **reports 4 GiB of DDR3 in two 2 GiB channels**, which
 corroborates the operator-confirmed reference board (Inspur YPCB-00338-1P1,
@@ -320,7 +324,8 @@ identical before and after the run. Values are MiB/s.
 | 3,020,800 (double buffer) | 1 MiB | 1197.0 | 1025.8 |
 | 127,660,416 (largest layer) | 8 MiB | **1352.0** | **996.6** |
 
-4 KiB calls collapse to about 175–180 MiB/s on a fixed ≈21.7 µs per-call cost;
+4 KiB calls collapse to about 164–180 MiB/s (175–180 H2C, 164–180 C2H) on a fixed
+≈21.7 µs per-call cost;
 the 8 MiB numbers are the best observed rates, about 1.32 GiB/s H2C and 0.97 GiB/s
 C2H. Both directions are far inside the Gen2 x4 envelope. These are DMA rates on
 this link and host, not token rates.
@@ -333,8 +338,10 @@ syscalls on this process's own buffers, and `/proc/self/numa_maps`:
 | node0 | `0-21,44-65` (44) | 10 / 21 | 540,902,154,240 B | 449,771,462,656 B |
 | node1 | `22-43,66-87` (44) | 21 / 10 | 541,147,926,528 B | 49,041,395,712 B |
 
-The endpoint is on node 0. Default first-touch anonymous pages landed on node 1
-(remote from the card); `numa_alloc_onnode(..., 0)` placed every page on node 0,
+The endpoint is on node 0. Under the default policy, the first-touch anonymous pages
+of this unpinned probe process landed on node 1 (remote from the card) — an observed
+placement outcome for that run, not a property of the default policy;
+`numa_alloc_onnode(..., 0)` placed every page on node 0,
 and `mbind(MPOL_BIND, node 0, MPOL_MF_MOVE)` migrated an already-touched 8193-page
 buffer node1 → node0, confirmed by `get_mempolicy` and `numa_maps` — so binding is
 demonstrably effective on this host. It did **not** move DMA throughput: H2C
@@ -359,7 +366,8 @@ still unapproved). The first three are now measured (2026-11-23) and the device
 reports 4 GiB of two-bank DDR3; usable capacity after reserve/ECC and bank
 interleaving still needs the allocator check, which is a device memory-write
 operation and remains unauthorized. #6 is therefore not Done: it stays Blocked on
-that authorization and on a bitstream provenance record. The acceptance item
+that pending allocator/bank-local authorization, and bitstream provenance remains an
+evidence gap. The acceptance item
 “reference-only and measured are separated, capability not used as measured
 link/throughput” is satisfied by this document together with the measured table
 above.
@@ -418,8 +426,8 @@ conditional on unmeasured bandwidth, dense/attention time and sync, and must not
 published as a result. The Phase 1–4 device facts are measured (§6, “Measured
 results”), but the projection still assumes unmeasured device compute and wall
 time: no end-to-end model execution exists, so the issue stays Blocked on the
-remaining unapproved allocator/bank-local check and bitstream provenance record,
-and the reference-only conclusions above are final for this document.
+pending allocator/bank-local authorization; bitstream provenance remains an evidence
+gap, and the reference-only conclusions above are final for this document.
 
 ## 8. Limits
 
