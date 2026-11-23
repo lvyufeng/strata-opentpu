@@ -232,6 +232,42 @@ There is no model acquisition, full-file/tensor hash, expert slicing, native
 helper, device operation or inferred model completeness. This preparation does
 not accept or unblock the parent budget/backend/full-decode gates.
 
+## Reference-only 4 GiB residency arithmetic
+
+The [residency calculator](residency_reference.py) turns a validated mixed-GGUF
+**header** inventory receipt into declared byte arithmetic against the reference
+4 GiB device envelope:
+
+```sh
+python3 scripts/residency_reference.py --receipt local/inventory.v2.json
+python3 scripts/residency_reference.py --receipt local/inventory.v2.json --format json
+python3 scripts/residency_reference.py --receipt local/inventory.v2.json --contexts 4096,32768
+```
+
+The input is a positional-free `--receipt` path; the default model geometry is the
+pinned 48-layer / 512-expert reference config and `--contexts` defaults to
+`4096,32768`. Only the supplied JSON is read: the CLI does not parse GGUF, open
+model payload, probe PCIe/NUMA, allocate memory, run Strata/openTPU or execute
+anything named in the receipt. Missing/unknown tensor storage, duplicate names,
+inconsistent totals, wrong layer/expert geometry and a non-last expert axis are
+rejected with exit 2, empty stdout and a diagnostic on stderr. Success exits 0 and
+reports declared bytes only.
+
+Five scenarios are computed: all persistent weights resident with or without the
+fittable global tensors, all persistent weights streamed, and a hypothetical
+cheapest-first layer pack. Hot space is a byte ceiling divided by the per-expert
+footprint, not a cache hit rate or a placement; the oversize per-layer embedding
+table is excluded from fit rows and reported separately. Every report repeats the
+`unknown` list (usable capacity, bank layout, negotiated link, DMA rates,
+workspace, fragmentation, routing trace, device compute, MTP) so no downstream
+record inherits a fit claim. KV arithmetic is declared from the pinned model
+config, not measured.
+
+See the [design and measurement plan](../docs/design/reference-residency-budget.md).
+The CPU projection in that document reuses accepted v2 single-branch medians and is
+explicitly not a decode or tokens/s result. Tests:
+`python3 -m unittest tests.test_residency_reference -v`.
+
 ## Hardware/network-free tests
 
 ```bash

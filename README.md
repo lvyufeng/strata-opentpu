@@ -149,6 +149,25 @@ These independently scoped preparations are tracked in
 [partial-tensor subtask #20](https://github.com/lvyufeng/strata-opentpu/issues/20).
 Their parent tasks still require actual mixed-tensor metadata, authorized resources
 and reproducible measurements. No bootstrap execution capability is enabled.
+
+The [reference residency design](docs/design/reference-residency-budget.md) and
+[calculator](scripts/residency_reference.py) turn the validated header inventory
+into declared 4 GiB byte arithmetic: per-layer persistent and expert bytes,
+recurrent state and KV/token, five residency scenarios, and an explicit `unknown`
+list for capacity, bank layout, negotiated PCIe, DMA, workspace, fragmentation,
+routing and device compute. The oversize per-layer embedding table is excluded from
+fit rows rather than silently dropped:
+
+```sh
+python3 scripts/residency_reference.py --receipt local/inventory.v2.json
+```
+
+The output is a declared ceiling, not a fit, placement, cache hit rate, link speed
+or tokens/s result. The same document carries the read-only device-fact
+measurement checklist and a projection from accepted v2 single-branch kernel
+medians; the projection assumes unmeasured bandwidth and dense/sync time and is not
+a decode measurement. #6 stays Blocked until those device facts are measured and
+audited.
 See the [script reference](scripts/README.md) for offline entry points and limits.
 
 ## Supplied-packed scalar preparation
