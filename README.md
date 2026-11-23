@@ -172,9 +172,16 @@ a decode measurement. The 2026-11-23 read-only run records the device-reported
 4 GiB two-bank DDR3, the negotiated Gen2 x4 link (Gen2 x8 is capability only, not
 achieved bandwidth), H2C/C2H DMA rates at the declared sizes and host NUMA
 placement in that document as measured inputs only; a follow-up audit corrected the
-CFG register offsets in `aa0232f`. None of it is a throughput or tokens/s claim.
-#6 stays Blocked on the one pending allocator/bank-local device-memory-write
-authorization, and bitstream provenance remains an evidence gap.
+CFG register offsets in `aa0232f`. A separately authorized synthetic host-DMA
+write/read-back then verified every 8 MiB chunk of both raw channel windows (4 GiB
+total), the first and last 64-byte beat of each channel and the largest expert blob
+on each channel, leaving the card idle with DRAM zeroed; that settles raw usable and
+bank-local capacity for host DMA, not the accelerator's logical interleave. None of
+it is a throughput or tokens/s claim.
+#6 stays Blocked only on bitstream provenance and the unmeasured device-side items
+(device DDR performance, logical interleave, real allocator placement and any model
+execution); the allocator/bank-local capacity check was executed under the recorded
+#6 authorization.
 See the [script reference](scripts/README.md) for offline entry points and limits.
 
 ## Supplied-packed scalar preparation

@@ -256,12 +256,17 @@ reports declared bytes only.
 Five scenarios are computed: all persistent weights resident with or without the
 fittable global tensors, all persistent weights streamed, and a hypothetical
 cheapest-first layer pack. Hot space is a byte ceiling divided by the per-expert
-footprint, not a cache hit rate or a placement; the oversize per-layer embedding
-table is excluded from fit rows and reported separately. Every report repeats the
-`unknown` list (usable capacity, bank layout, negotiated link, DMA rates,
-workspace, fragmentation, routing trace, device compute, MTP) so no downstream
-record inherits a fit claim. KV arithmetic is declared from the pinned model
-config, not measured.
+footprint, not a cache hit rate or a placement; the design document then subtracts
+a declared 180,355,072-byte reserve for fragmentation, workspace, DMA ring and
+metadata, and excludes the oversize per-layer embedding table from fit rows and
+reports it separately. Every report repeats the `unknown` list (usable capacity,
+bank layout, negotiated link, DMA rates, workspace, fragmentation, routing trace,
+device compute, MTP) so no downstream record inherits a fit claim. Measured device
+facts — the 4 GiB two-bank DDR3, negotiated Gen2 x4 link, host DMA rates, NUMA
+placement and an authorized full-window host-DMA capacity check — live in the
+design document and never enter the calculator; the logical interleave and
+device-side DDR performance stay unknown. KV arithmetic is declared from the
+pinned model config, not measured.
 
 See the [design and measurement plan](../docs/design/reference-residency-budget.md).
 The CPU projection in that document reuses accepted v2 single-branch medians and is

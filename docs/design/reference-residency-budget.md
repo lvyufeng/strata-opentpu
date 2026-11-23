@@ -12,10 +12,12 @@ tokens/s result.
 This is the hardware-free part of [central Issue #6](https://github.com/lvyufeng/strata-opentpu/issues/6),
 the memory/PCIe/NUMA budget parent, and the companion of
 [partial-tensor budget schema v2](resource-budget-v2.md) and the
-[full budget contract v1](resource-budget.md). The device side of #6 remains
-blocked on authorized measurement; this document only declares byte ceilings,
-unknowns and a measurement plan so that measurement can be executed without
-redesign.
+[full budget contract v1](resource-budget.md). Section 6 records authorized
+device inspections on 2026-11-23 (read-only register/sysfs reads, DMA-size
+checks and one synthetic host-DMA capacity write); those measured inputs are
+kept separate from the declared byte ceilings below and are not fed back into
+the arithmetic. The table bodies remain declared ceilings, and bitstream
+provenance, device-side DRAM performance and real placement remain unknown.
 
 ## 1. Inputs and identity
 
@@ -109,11 +111,14 @@ linear value heads × 128, 16 linear key heads × 128, conv kernel 4, 2 KV heads
 | --- | --- | --- | --- | --- | --- | --- |
 | KV + indexer bytes | 56,623,104 | 113,246,208 | 226,492,416 | 905,969,664 | 3,623,878,656 | 7,247,757,312 |
 
-Not charged, and not known: KV block/page metadata and allocator rounding, sampler
-state, MTP state (`mtp_num_hidden_layers` 1 is declared but its placement and
-resident cost are unmeasured), activation workspace, DMA ring, routing metadata and
-any fragmentation. The table is thus a **lower bound on required bytes**, and the
-hot space derived from it is an upper bound.
+The hot columns below are ceilings: only the named items are subtracted there,
+and the declared reserve in §4 subtracts fragmentation, activation workspace,
+DMA ring and metadata before any real placement. MTP state
+(`mtp_num_hidden_layers` 1 is declared but its placement and resident cost are
+unmeasured), routing metadata and sampler state stay unmodeled and are covered
+only by that reserve. The table is thus a **lower bound on required bytes** for
+the named items, and the hot space derived from it is an upper bound until the
+reserve is applied.
 
 ## 4. Device budget scenarios on 4 GiB `[P]`
 
@@ -122,8 +127,9 @@ items: persistent fixed weights or their double-buffered stream, the recurrent
 state, KV for the stated context, a double-buffered one-expert DMA staging area
 (2 × 1,510,400 = 3,020,800), and for streaming scenarios a double-buffered
 largest-layer staging area (2 × 127,660,416 = 255,320,832). “Hot” is the remainder
-available for selected expert slots before fragmentation/workspace, divided by the
-per-expert footprint; the slot range spans the cheapest and most expensive format.
+available for selected expert slots before the declared reserve below, divided by
+the per-expert footprint; the slot range spans the cheapest and most expensive
+format.
 Coverage percent is slots ÷ (48 × 512) resident expert tensors. One token routes
 10 experts per layer = 480 expert applications, so “token-equivalents” below is
 slots ÷ 480 with **no reuse assumed** — it is not a hit rate.
@@ -146,27 +152,56 @@ S2 greedy cheapest-first packs **5 of 48 layers** (3× IQ1_M 602,931,200 +
 a real layer-contiguous or tensor-row-pinned selection would fit fewer, and no
 adaptive cache policy is modeled.
 
+**Declared allocation reserve.** A budget that must not over-allocate charges
+costs the hot columns omit. Transfer staging is already charged (3,020,800 bytes,
+plus 255,320,832 in the streaming scenarios); the remaining items are declared
+assumptions, not measurements:
+
+| Reserve item | Declared bytes | Basis |
+| --- | ---: | --- |
+| Fragmentation and per-allocation padding | 134,217,728 | 128 MiB ceiling, 3.1 % of the envelope |
+| Activation workspace and dense scratch | 33,554,432 | 32 MiB declared |
+| DMA descriptor ring and sync buffers | 8,388,608 | 8 MiB declared |
+| Routing, sampler and metadata | 4,194,304 | 4 MiB declared |
+| **Total reserve** | **180,355,072** | 4.2 % of the envelope, subtracted from every hot cell |
+
+Subtracting 180,355,072 bytes from the ctx-4,096 cells gives usable hot space of
+809,299,968 (S0), 120,721,408 (S0G), 3,625,354,496 (S1) and 2,936,775,936 (S1G)
+bytes. Even after the reserve S0 leaves 536–687 max-size expert slots at ctx
+4,096 (≈2.3 % of the 35,454,976,000 expert bytes) and 11–14 at ctx 32,768; S0G
+falls to 80–103
+slots and its ctx-32,768 cell becomes −672,002,048 bytes; S1 keeps 2,400–3,079
+slots at ctx 4,096 and S1G 1,944–2,494. The reserve is a declared ceiling, not an
+allocator measurement: hot experts occupy the positive remainder while the CPU
+cold-expert path stays mandatory, so the budget keeps Strata's mechanism instead
+of assuming full residency. No fragmentation or workspace byte here is measured.
+
 Bank layout. The frozen native layout keeps an expert blob as two allocations —
-gate+up (1,049,600 max) and down (460,800) — so a slot must be split across the two
+gate+up (1,049,600 max) and down (460,800) — so a slot may be split across the two
 declared banks; per-expert blob maximum 1,510,400 bytes. Every persistent weight
 tensor and the state tensors individually fit one bank (largest single resident
-item is layer 1 fixed weights at 127,660,416). Whether the board actually
-interleaves the two banks is unknown; the calculator charges the envelope as one
-pool and therefore **cannot** prove a bank-local placement. Fragmentation,
-per-allocation padding, DMA ring, activation workspace and metadata are not
-charged, so each “hot bytes” cell is a ceiling that a real allocator has not yet
-met.
+item is layer 1 fixed weights at 127,660,416). Measured 2026-11-23: the device
+reports two 2,147,483,648-byte DDR3 channels, the host-DMA window spans all
+4,294,967,296 bytes contiguously, and every 8 MiB chunk of both raw channel windows
+was written and read back byte-exact, including the last 64-byte beat of each
+channel (§6, capacity probe). The accelerator's logical interleaved address map
+(CAPS bit 7 `CHASH` set; two channels, 64-byte-beat hash interleave as pinned
+upstream documents describe) was not exercised, because no device compute ran:
+the raw windows are proven, the logical mapping is documented upstream rather
+than measured here. The calculator still charges the envelope as one pool, so it
+**cannot** prove a bank-local placement; the declared reserve above is what keeps
+each “hot bytes” cell from being an over-allocation.
 
-## 5. What is unknown, and why #6 stays blocked
+## 5. What is unknown, and what measurement has and has not settled
 
-`[U]` for every item: device usable capacity after reserve/ECC and allocator
-overhead; largest contiguous allocation and bank interleaving; device-side DDR3
-bandwidth and latency; negotiated PCIe width/speed (capability is not the link);
-DMA directions, sizes, repeat counts and measured rates; activation/workspace,
-DMA ring, metadata and sampling buffer bytes; fragmentation and padding; the
-routing trace and expert hit distribution; device compute availability and
-per-layer rate; MTP placement cost. The calculator prints this list in every
-report, so no downstream record can inherit a “fit” claim from it by accident.
+`[U]` for every item no run has settled: allocator-level usable capacity after
+reserve (the raw 4 GiB window is measured and the reserve is declared, but no
+allocator has run); largest contiguous allocation and the accelerator's logical
+bank interleave; device-side DDR3 bandwidth and latency; activation/workspace, DMA
+ring, metadata and sampling buffer bytes; fragmentation and padding; the routing
+trace and expert hit distribution; device compute availability and per-layer rate;
+MTP placement cost. The calculator prints this list in every report, so no
+downstream record can inherit a “fit” claim from it by accident.
 
 Gen2 x8 module capability must never be reported as the negotiated link or as a
 throughput. Likewise 655 expert slots is not a cache hit rate: without a routing
@@ -174,13 +209,15 @@ trace, an unknown fraction of the 480 per-token expert applications is cold and
 must traverse the CPU path.
 
 On 2026-11-23 a read-only run on the reference host replaced part of that `[U]`
-list with measured inputs: the device-reported capacity and configuration, the
-negotiated link, both DMA directions at the declared sizes, and the host NUMA
-topology and placement (§6, “Measured results”). Capacity *allocation* and bank
-interleaving, device-side DDR bandwidth/latency, bitstream provenance,
-workspace/fragmentation, routing trace and device compute availability remain
-`[U]`; the measured items are evidence only and none of them is a throughput or a
-tokens/s result.
+list with measured inputs: device-reported capacity and configuration, negotiated
+link, both DMA directions at the declared sizes, host NUMA topology and placement
+(§6). A second authorized run then wrote and read back synthetic patterns over the
+full 4 GiB host-DMA window and both raw channel windows, which settles usable and
+bank-local capacity for raw host DMA (§6, capacity probe). Capacity *allocation*
+and the logical interleave, device-side DDR bandwidth/latency, bitstream
+provenance, workspace/fragmentation, routing trace and device compute availability
+remain `[U]`. The measured items are evidence only and none of them is a
+throughput or a tokens/s result.
 
 ## 6. Hardware measurement plan (executable checklist)
 
@@ -189,6 +226,16 @@ reconfigures the device, driver or network, and a Ready Project field is not
 authorization. Before running any of it the operator records machine name, board
 identity source, allowed read-only command set, evidence directory and timebox in
 the #6 comment; any step that needs a write becomes a separate explicit approval.
+
+Execution status 2026-11-23: Phases 0, 1, 2, 4 and the host-side `h2d`/`d2h` part
+of Phase 3 were executed on the reference host, and the usable-capacity check
+recorded in the measured results below was executed under a separate
+device-memory-write authorization. That capacity check is host-DMA evidence only;
+it is not a device-side read and not device DDR performance. The `h2d → device-side
+read → d2h` part of Phase 3, a device-side DDR probe, a bitstream readback and a
+logical-interleave exercise were not executed, so their boxes stay unchecked. The
+checkboxes below are the executable plan; the measured-results section states what
+actually ran.
 
 ### Phase 0 — preconditions
 
@@ -260,21 +307,25 @@ the #6 comment; any step that needs a write becomes a separate explicit approval
 
 - [ ] Sanitize hostnames/IPs/serials; write a SHA256 manifest of the private raw
       files; publish only the sanitized summary into the issue comment.
-- [ ] Update the #6 checklist only with facts produced by Phases 1–4; leave
-      remaining items unchecked and the Project status blocked until then.
+- [ ] Update the #6 checklist only with facts actually produced by the executed
+      phases; do not re-check a planned item. The 2026-11-23 facts move the issue
+      out of its former blocked state, but its remaining evidence gaps stay open.
 - [ ] Store the budget arithmetic JSON next to the evidence and mark which cells
       changed from ceiling to measured, and which remain `unknown`.
 
-### Measured results — 2026-11-23 (read-only, reference host)
+### Measured results — 2026-11-23 (reference host)
 
-Authorization and scope are quoted in the #6 comment trail; the operations were
-read-only (BAR0 register reads through `/dev/xdma0_user`, DMA writes/reads of
-synthetic patterns only, in-process memory placement). Nothing was flashed, reset,
-reprogrammed or reconfigured, no register was written, and the driver, kernel
-command line and network were not touched. The host is a 2 × Xeon E5-2696 v4
-machine (88 logical CPUs, 2 socket-aligned NUMA nodes) running Ubuntu 22.04,
-kernel 5.15.0-203-generic; no hostname, address, login or serial is recorded in
-this repository.
+Authorization and scope are quoted in the #6 comment trail. Two authorized phases
+ran: a read-only inspection (BAR0 register reads through `/dev/xdma0_user`, sysfs
+link/NUMA reads, DMA write/read checks of synthetic patterns at declared sizes,
+in-process memory placement) and one bounded synthetic host-DMA
+write-then-read-back over the full 4 GiB window (the capacity probe below).
+Nothing was flashed, reset, reprogrammed or reconfigured, no register was written,
+and the driver, kernel command line and network were not touched; the card was
+left idle with DRAM zeroed. The host is a 2 × Xeon E5-2696 v4 machine (88 logical
+CPUs, 2 socket-aligned NUMA nodes) running Ubuntu 22.04, kernel
+5.15.0-203-generic; no hostname, address, login or serial is recorded in this
+repository.
 
 Device facts read from the register map (v5, LE words; a card left initialized by
 a prior session, no reset was issued):
@@ -350,27 +401,72 @@ MiB/s, deltas of -0.22 % and -0.14 %, inside run-to-run spread. That is an
 observation, not a tuning gain, and it says nothing about how host memory should
 be placed for real residency.
 
+#### Usable-capacity probe (authorized device memory write)
+
+Scope and authorization are quoted in #6 comment `7105781807`, and the runner's
+own `authorization` record repeats them: a bounded synthetic host-DMA
+write-then-read-back over both raw DDR3 channels across the full 4 GiB window —
+not a register write, reset, bitstream or flash operation, and no root. Runner
+source sha256 `e36af23522c90d929df59d5df9c5a0a5560ec8a9b3cbcf8bf706447caa4fc7dc`,
+result JSON sha256
+`c2e53b57183b1a2df08c8a79cd1febdb30c6698eee6721d08da91d78a585a3a3` and log sha256
+`4d95dbdac3a79b7b28000dc76f3965ee57942f0efd43259ab890eafed68a8cb7`; the raw files
+stay in the git-ignored `local/hw-evidence/` and are not committed. 8,388,608-byte
+chunks, 512 calls per 4 GiB phase, host-buffer placement offset 2048 below the
+device address on every call, existing `/tmp/otpu` lock files taken and released,
+wall 27.89 s (`15:48:23Z–15:48:51Z`), schema
+`strata-fpga-capacity-probe-v1`. All six gates are true (`status_idle_pre`,
+`regs_unchanged`, `status_idle_post`, `no_foreign_fds_end`, `verification_clean`,
+`ok`) with no error or failure records, and identity registers are identical
+before and after (`0x000 ID` `0x4f545055`, `0x00C STATUS` `0x68`, `0x040 CAPS`
+`0xef0a0eff`, `0x048 BUILD_ID` `0xd84db557`).
+
+| Phase | Bytes | Calls | MiB/s | median µs | p95 µs | Result |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| A pattern write | 4,294,967,296 | 512 | 1408.3 | 5,678.4 | 5,757.1 | all 512 chunks written |
+| B pattern read-back | 4,294,967,296 | 512 | 1430.4 | 5,568.0 | 5,706.9 | byte-exact, 512/512 chunks |
+| C edge beats | 64 each | 4 | — | 84.8–87.2 | — | all four beats verified, neighbours intact |
+| D per-channel blobs | 1,510,400 each | 2 | — | — | — | max expert blob verified on each channel |
+| E zero restore | 4,294,967,296 | 512 | 1328.5 | 6,028.9 | 6,067.7 | card left fully zeroed |
+| F zero verify | 4,294,967,296 | 512 | 1337.1 | 5,965.0 | 6,018.6 | `nonzero_chunks` 0 |
+
+The four 64-byte edges are at device addresses 0, 2,147,483,584, 2,147,483,648 and
+4,294,967,232 — the first and last beat of each declared 2,147,483,648-byte
+channel window. The two blobs are the largest expert blob (1,510,400 bytes) at
+1,048,576 on channel 0 and at 2,148,532,224 on channel 1, each read back to the
+expected SHA256 with its neighbouring beat intact before and after the write.
+Conclusion: all 4,294,967,296 bytes of the host-DMA window are backed and
+writable, both declared channel windows are individually addressable to their last
+beat, and the maximum expert blob fits and verifies at a low address on each
+channel. That settles usable and bank-local capacity for raw host DMA; it does
+**not** settle the accelerator's logical interleaved address map, device-side DDR
+bandwidth/latency (no `h2d → device read → d2h` round trip), allocator
+fragmentation, or any model placement, so those stay withheld and unclaimed. The
+MiB/s cells are host-DMA rates on this link and host, not token rates.
+
 Executed versus not executed: identity/capacity reads, negotiated link, H2C and
-C2H at the declared sizes, NUMA topology/placement and `mbind` were executed.
-Not executed: the allocator/bank-local capacity check (needs device memory-write
-authorization), a bitstream readback/SHA256, a device-side DDR bandwidth probe, a
-`h2d → device-side read → d2h` round trip, and any placement of real expert data
-or model execution. Raw JSON and runner sources, with a SHA256 manifest, are kept
-in the git-ignored `local/` evidence directory and are not committed; only this
+C2H at the declared sizes, NUMA topology/placement and `mbind`, and the authorized
+allocator/bank-local capacity write/read-back over the full 4 GiB window were
+executed. Not executed: a bitstream readback/SHA256, a device-side DDR bandwidth
+probe, a `h2d → device-side read → d2h` round trip, an accelerator-visible
+logical-interleave exercise, a real allocator or expert placement, and any model
+execution. Raw JSON and runner sources, with a SHA256 manifest, are kept in the
+git-ignored `local/` evidence directory and are not committed; only this
 sanitized summary is published.
 
 Minimum facts required before #6 can move: negotiated link (Phase 2), DMA rate for
 at least the max expert blob in both directions (Phase 3), NUMA node of the device
-(Phase 4), and usable/bank-local capacity (Phase 1 plus an allocator check that is
-still unapproved). The first three are now measured (2026-11-23) and the device
-reports 4 GiB of two-bank DDR3; usable capacity after reserve/ECC and bank
-interleaving still needs the allocator check, which is a device memory-write
-operation and remains unauthorized. #6 is therefore not Done: it stays Blocked on
-that pending allocator/bank-local authorization, and bitstream provenance remains an
-evidence gap. The acceptance item
-“reference-only and measured are separated, capability not used as measured
-link/throughput” is satisfied by this document together with the measured table
-above.
+(Phase 4), and usable/bank-local capacity (Phase 1 plus an allocator check). All
+four are now measured (2026-11-23): Gen2 x4 negotiated, DMA at the declared sizes
+in both directions, node 0, and the full 4 GiB window written and read back
+verified. The one operation that kept #6 Blocked — the allocator/bank-local
+capacity check that needed device memory-write authorization — was executed under
+the recorded #6 scope and is discharged. Bitstream provenance remains an evidence
+gap, and device-side DRAM performance, the logical interleave, real
+workspace/fragmentation and placement remain unmeasured and are not claimed. The
+requirement that reference-only facts and measured facts stay separated, and that
+a module capability is never presented as a measured link speed or throughput, is
+met by this document together with the measured tables above.
 
 ## 7. Feasibility projection (no wall measurement)
 
@@ -411,29 +507,39 @@ the reference scenario even though it leaves only 2.67 % of expert tensors
 resident. Second, ≈6.9 GB/s of cold-expert traffic per token at 10 tok/s is a
 requirement that must be compared against the **measured** negotiated link and DMA
 rate from Phases 2–3; the module's capability number cannot satisfy it, and a hot
-cache can only lower it by the measured hit rate. 10 tok/s also needs at least
-7.51 effective parallel workers (750.6 ms / 100 ms) even if bandwidth were free;
-the host has 88 logical CPUs but the device-side memory and link are unknown.
+cache can only lower it by the measured hit rate. The comparison is now concrete:
+the negotiated link is Gen2 x4, measured host DMA peaks are ≈1.32–1.41 GiB/s H2C
+and ≈0.97–1.09 GiB/s C2H at 127,660,416–8,388,608-byte transfers, far below the
+≈6.9 GB/s streaming requirement, so cold experts cannot be streamed from host
+memory at the target and must run from resident device data or on the CPU. 10 tok/s
+also needs at least 7.51 effective parallel workers (750.6 ms / 100 ms) even if
+bandwidth were free; the host has 88 logical CPUs but the device-side memory and
+link are insufficient for streaming.
 
 Conclusion for #6 (hardware-free part): on the declared 4 GiB envelope the full
 mixed model cannot reside (68.0 GB known storage; 35.45 GB experts; 28.8 GB PLE
 table). With all persistent weights resident, ctx-4,096 leaves a ≈0.99 GB ceiling
-for 655 max-size expert slots — 2.67 % of expert tensors and 1.36 token-equivalents
-of routed applications without reuse — so the CPU cold path can never be assumed
-away. The projection is that a parallel CPU cold-expert path is arithmetically
-capable of a ≈13 tok/s order of magnitude at 10 workers, but that figure is
-conditional on unmeasured bandwidth, dense/attention time and sync, and must not be
-published as a result. The Phase 1–4 device facts are measured (§6, “Measured
-results”), but the projection still assumes unmeasured device compute and wall
-time: no end-to-end model execution exists, so the issue stays Blocked on the
-pending allocator/bank-local authorization; bitstream provenance remains an evidence
-gap, and the reference-only conclusions above are final for this document.
+for 655 max-size expert slots before the declared 180,355,072-byte reserve,
+2.67 % of expert tensors and 1.36 token-equivalents of routed applications without
+reuse, so the CPU cold path can never be assumed away. The projection is that a
+parallel CPU cold-expert path is arithmetically capable of a ≈13 tok/s order of
+magnitude at 10 workers, but that figure is conditional on unmeasured bandwidth,
+dense/attention time and sync, and must not be published as a result. The Phase 1–4
+device facts are measured (§6, “Measured results”), including the authorized
+write/read-back of the full 4 GiB host-DMA window, but the projection still assumes
+unmeasured device compute and wall time: no end-to-end model execution exists, so
+no throughput claim follows and the target stays unmet. #6 stays open on the
+remaining evidence gap — bitstream provenance — and on unmeasured device-side DRAM
+performance, logical interleave and real allocator placement; its former Blocked
+condition (the allocator/bank-local capacity authorization) is discharged. The
+reference-only conclusions above are final for this document.
 
 ## 8. Limits
 
-- Device identity/capacity, negotiated PCIe, DMA rates and host NUMA placement were
-  measured read-only on the reference host on 2026-11-23 (§6, “Measured results”).
-  No allocator/bank-interleaving, device-side DDR, bitstream, model or wall-time
+- Device identity/capacity, negotiated PCIe, DMA rates, host NUMA placement and the
+  authorized synthetic host-DMA write/read-back of the full 4 GiB window were
+  measured on the reference host on 2026-11-23 (§6). No logical-interleave or
+  device-side DDR exercise, device allocator run, bitstream, model or wall-time
   measurement was performed, and no measured DMA rate is converted to tokens/s.
 - The receipt is header-only and self-consistent, not independently verified;
   `structural_consistency_only` semantics of the v2 CPU evidence do not transfer
