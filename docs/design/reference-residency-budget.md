@@ -173,6 +173,15 @@ throughput. Likewise 655 expert slots is not a cache hit rate: without a routing
 trace, an unknown fraction of the 480 per-token expert applications is cold and
 must traverse the CPU path.
 
+On 2026-11-23 a read-only run on the reference host replaced part of that `[U]`
+list with measured inputs: the device-reported capacity and configuration, the
+negotiated link, both DMA directions at the declared sizes, and the host NUMA
+topology and placement (§6, “Measured results”). Capacity *allocation* and bank
+interleaving, device-side DDR bandwidth/latency, bitstream provenance,
+workspace/fragmentation, routing trace and device compute availability remain
+`[U]`; the measured items are evidence only and none of them is a throughput or a
+tokens/s result.
+
 ## 6. Hardware measurement plan (executable checklist)
 
 Only read-only operations are listed. Nothing here flashes, resets, reprograms or
@@ -256,12 +265,104 @@ the #6 comment; any step that needs a write becomes a separate explicit approval
 - [ ] Store the budget arithmetic JSON next to the evidence and mark which cells
       changed from ceiling to measured, and which remain `unknown`.
 
+### Measured results — 2026-11-23 (read-only, reference host)
+
+Authorization and scope are quoted in the #6 comment trail; the operations were
+read-only (BAR0 register reads through `/dev/xdma0_user`, DMA writes/reads of
+synthetic patterns only, in-process memory placement). Nothing was flashed, reset,
+reprogrammed or reconfigured, no register was written, and the driver, kernel
+command line and network were not touched. The host is a 2 × Xeon E5-2696 v4
+machine (88 logical CPUs, 2 socket-aligned NUMA nodes) running Ubuntu 22.04,
+kernel 5.15.0-203-generic; no hostname, address, login or serial is recorded in
+this repository.
+
+Device facts read from the register map (v5, LE words; a card left initialized by
+a prior session, no reset was issued):
+
+| Register | Value | Reading |
+| --- | --- | --- |
+| `0x000 ID` | `0x4f545055` | `ID_OTPU` — live openTPU bitstream, AXI-Lite responds |
+| `0x03C REGMAP` | 5 | register map v5 |
+| `0x040 CAPS` | `0xef0a0eff` | matches pinned RTL top-bit constant for this build |
+| `0x044 CORE_KHZ` | 133333 | 133.333 MHz accelerator clock |
+| `0x048 BUILD_ID` | `0xd84db557` | build *parameter*, not a bitstream hash |
+| `0x054 DDR_MTS` | 1066 | DDR3-1066 |
+| `0x058 ACT_ROWS` | 16 | activation rows |
+| `0x05C CAPS2` | 0 | r2 default `COLL_GATHER=0` (not an anomaly) |
+| `0x0C0/0x0C4/0x0C8/0x0CC CFG` | 1 / 65536 / 32768 / 128 | slice / TMEM words / IMEM words / activation blocks |
+| `0x0D0 CFG DRAM` | `0x001f0220` | **4,294,967,296 B total, 2,147,483,648 B per channel, 64-byte beats** |
+| `0x0D8 CFG PLATFORM` | 1 | YPCB-00338 platform id |
+| `0x0DC CFG ARCH_HASH` | `0x4ffd1e17` | equals the `variants.m4` config hash |
+
+The device therefore **reports 4 GiB of DDR3 in two 2 GiB channels**, which
+corroborates the operator-confirmed reference board (Inspur YPCB-00338-1P1,
+XC7K480T) and the configuration file's declared `ddr_total_bytes`. `BUILD_ID` is
+the pinned openTPU commit's first eight hex digits as passed at build time; it
+does **not** identify the flashed image, so bitstream SHA256 remains unknown.
+
+Negotiated link, read from sysfs because `lspci -vv` capability output is not
+available to a non-root user: endpoint capability **Gen2 x8**, negotiated
+**Gen2 x4**; the parent root port caps `max_link_width` at 4, so x4 is the slot
+ceiling, not a card or cable downgrade. At 5.0 GT/s × 4 lanes the raw 8b/10b
+signalling ceiling is about 2.0 GB/s per direction — a theoretical bound that is
+never reported as achieved bandwidth.
+
+DMA smoke, synthetic patterns, 5 repeats + 1 warmup per group, median of 5; host
+buffer pageable (no `mlock`) with the documented +2048 placement offset inside the
+mapping; 8 MiB chunk for the largest group. Every rep verified by full-region
+compare and SHA256, and the card status register and all identity registers were
+identical before and after the run. Values are MiB/s.
+
+| Bytes | Chunk | H2C | C2H |
+| ---: | ---: | ---: | ---: |
+| 1,510,400 (max expert blob) | 4 KiB | 178.0 | 179.5 |
+| 1,510,400 | 1 MiB | 1124.2 | 944.8 |
+| 3,020,800 (double buffer) | 1 MiB | 1197.0 | 1025.8 |
+| 127,660,416 (largest layer) | 8 MiB | **1352.0** | **996.6** |
+
+4 KiB calls collapse to about 175–180 MiB/s on a fixed ≈21.7 µs per-call cost;
+the 8 MiB numbers are the best observed rates, about 1.32 GiB/s H2C and 0.97 GiB/s
+C2H. Both directions are far inside the Gen2 x4 envelope. These are DMA rates on
+this link and host, not token rates.
+
+NUMA facts, from sysfs, libnuma (read-only use), raw `mbind`/`get_mempolicy`
+syscalls on this process's own buffers, and `/proc/self/numa_maps`:
+
+| Node | CPUs | Distance | MemTotal | MemFree at probe |
+| --- | --- | --- | ---: | ---: |
+| node0 | `0-21,44-65` (44) | 10 / 21 | 540,902,154,240 B | 449,771,462,656 B |
+| node1 | `22-43,66-87` (44) | 21 / 10 | 541,147,926,528 B | 49,041,395,712 B |
+
+The endpoint is on node 0. Default first-touch anonymous pages landed on node 1
+(remote from the card); `numa_alloc_onnode(..., 0)` placed every page on node 0,
+and `mbind(MPOL_BIND, node 0, MPOL_MF_MOVE)` migrated an already-touched 8193-page
+buffer node1 → node0, confirmed by `get_mempolicy` and `numa_maps` — so binding is
+demonstrably effective on this host. It did **not** move DMA throughput: H2C
+1344.9 (node-1 default) vs 1342.0 MiB/s (node-0 bound), C2H 1118.3 vs 1116.7
+MiB/s, deltas of -0.22 % and -0.14 %, inside run-to-run spread. That is an
+observation, not a tuning gain, and it says nothing about how host memory should
+be placed for real residency.
+
+Executed versus not executed: identity/capacity reads, negotiated link, H2C and
+C2H at the declared sizes, NUMA topology/placement and `mbind` were executed.
+Not executed: the allocator/bank-local capacity check (needs device memory-write
+authorization), a bitstream readback/SHA256, a device-side DDR bandwidth probe, a
+`h2d → device-side read → d2h` round trip, and any placement of real expert data
+or model execution. Raw JSON and runner sources, with a SHA256 manifest, are kept
+in the git-ignored `local/` evidence directory and are not committed; only this
+sanitized summary is published.
+
 Minimum facts required before #6 can move: negotiated link (Phase 2), DMA rate for
 at least the max expert blob in both directions (Phase 3), NUMA node of the device
 (Phase 4), and usable/bank-local capacity (Phase 1 plus an allocator check that is
-still unapproved). Until then the acceptance item “reference-only and measured are
-separated, capability not used as measured link/throughput” is satisfied by this
-document and by keeping the issue Blocked.
+still unapproved). The first three are now measured (2026-11-23) and the device
+reports 4 GiB of two-bank DDR3; usable capacity after reserve/ECC and bank
+interleaving still needs the allocator check, which is a device memory-write
+operation and remains unauthorized. #6 is therefore not Done: it stays Blocked on
+that authorization and on a bitstream provenance record. The acceptance item
+“reference-only and measured are separated, capability not used as measured
+link/throughput” is satisfied by this document together with the measured table
+above.
 
 ## 7. Feasibility projection (no wall measurement)
 
@@ -314,13 +415,18 @@ of routed applications without reuse — so the CPU cold path can never be assum
 away. The projection is that a parallel CPU cold-expert path is arithmetically
 capable of a ≈13 tok/s order of magnitude at 10 workers, but that figure is
 conditional on unmeasured bandwidth, dense/attention time and sync, and must not be
-published as a result. Moving #6 to “only hardware measurement remains” requires
-the Phase 1–4 facts above; until then the reference-only conclusions are final and
-the issue stays Blocked.
+published as a result. The Phase 1–4 device facts are measured (§6, “Measured
+results”), but the projection still assumes unmeasured device compute and wall
+time: no end-to-end model execution exists, so the issue stays Blocked on the
+remaining unapproved allocator/bank-local check and bitstream provenance record,
+and the reference-only conclusions above are final for this document.
 
 ## 8. Limits
 
-- No device, PCIe, DMA, NUMA, allocator or wall-time measurement was performed.
+- Device identity/capacity, negotiated PCIe, DMA rates and host NUMA placement were
+  measured read-only on the reference host on 2026-11-23 (§6, “Measured results”).
+  No allocator/bank-interleaving, device-side DDR, bitstream, model or wall-time
+  measurement was performed, and no measured DMA rate is converted to tokens/s.
 - The receipt is header-only and self-consistent, not independently verified;
   `structural_consistency_only` semantics of the v2 CPU evidence do not transfer
   to it.

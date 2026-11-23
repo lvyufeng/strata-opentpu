@@ -167,7 +167,10 @@ or tokens/s result. The same document carries the read-only device-fact
 measurement checklist and a projection from accepted v2 single-branch kernel
 medians; the projection assumes unmeasured bandwidth and dense/sync time and is not
 a decode measurement. #6 stays Blocked until those device facts are measured and
-audited.
+audited: the 2026-11-23 read-only run on the reference host records the device's
+reported capacity, the negotiated link, DMA rates at the declared sizes and host
+NUMA placement in that document as measured inputs only, pending review, and none
+of it is a throughput or tokens/s claim.
 See the [script reference](scripts/README.md) for offline entry points and limits.
 
 ## Supplied-packed scalar preparation
