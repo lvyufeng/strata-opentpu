@@ -154,9 +154,11 @@ The [reference residency design](docs/design/reference-residency-budget.md) and
 [calculator](scripts/residency_reference.py) turn the validated header inventory
 into declared 4 GiB byte arithmetic: per-layer persistent and expert bytes,
 recurrent state and KV/token, five residency scenarios, and an explicit `unknown`
-list for capacity, bank layout, negotiated PCIe, DMA, workspace, fragmentation,
-routing and device compute. The oversize per-layer embedding table is excluded from
-fit rows rather than silently dropped:
+list (usable capacity, bank layout, negotiated link, DMA rates, workspace,
+fragmentation, routing trace, device compute, MTP). The calculator stays offline
+and declared: measured device facts live in the design's measured-results section
+and are not fed back into its arithmetic. The oversize per-layer embedding table is
+excluded from fit rows rather than silently dropped:
 
 ```sh
 python3 scripts/residency_reference.py --receipt local/inventory.v2.json
@@ -166,11 +168,13 @@ The output is a declared ceiling, not a fit, placement, cache hit rate, link spe
 or tokens/s result. The same document carries the read-only device-fact
 measurement checklist and a projection from accepted v2 single-branch kernel
 medians; the projection assumes unmeasured bandwidth and dense/sync time and is not
-a decode measurement. #6 stays Blocked until those device facts are measured and
-audited: the 2026-11-23 read-only run on the reference host records the device's
-reported capacity, the negotiated link, DMA rates at the declared sizes and host
-NUMA placement in that document as measured inputs only, pending review, and none
-of it is a throughput or tokens/s claim.
+a decode measurement. The 2026-11-23 read-only run records the device-reported
+4 GiB two-bank DDR3, the negotiated Gen2 x4 link (Gen2 x8 is capability only, not
+achieved bandwidth), H2C/C2H DMA rates at the declared sizes and host NUMA
+placement in that document as measured inputs only; a follow-up audit corrected the
+CFG register offsets in `aa0232f`. None of it is a throughput or tokens/s claim.
+#6 stays Blocked on the one pending allocator/bank-local device-memory-write
+authorization, and bitstream provenance remains an evidence gap.
 See the [script reference](scripts/README.md) for offline entry points and limits.
 
 ## Supplied-packed scalar preparation
